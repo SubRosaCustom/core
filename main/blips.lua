@@ -1,0 +1,226 @@
+---@diagnostic disable: lowercase-global
+
+---@alias main.blips.ShapeName "square"|"rectangle"|"diamond"|"circle"|"arrow"
+
+---@class main.blips.BlipOptions
+---@field worldX number World X coordinate
+---@field worldZ number World Z coordinate
+---@field r? number Red color component (0-1, default 1)
+---@field g? number Green color component (0-1, default 1)
+---@field b? number Blue color component (0-1, default 1)
+---@field a? number Alpha component (0-1, default 1)
+---@field size? number Blip size in map-space units (default 1.5)
+---@field shape? main.blips.ShapeName Shape to render (default "square")
+---@field yaw? number Rotation angle in radians (used by arrow/rectangle shapes)
+---@field clamp? boolean Whether to clamp blip to minimap boundary (default false)
+
+---@class main.blips.Blip
+---@field name string
+---@field worldX number
+---@field worldZ number
+---@field r number
+---@field g number
+---@field b number
+---@field a number
+---@field size number
+---@field shape main.blips.ShapeName
+---@field yaw number
+---@field clamp boolean
+
+---@class main.blips.BlipsLib
+---@field private _blips { [string]: main.blips.Blip }
+blips = {
+	_blips = {},
+}
+
+---@enum main.blips.Shape
+blips.shape = {
+	square = "square",
+	rectangle = "rectangle",
+	diamond = "diamond",
+	circle = "circle",
+	arrow = "arrow",
+}
+
+local defaultBlipValues = {
+	r = 1,
+	g = 1,
+	b = 1,
+	a = 1,
+	size = 1.5,
+	shape = "square",
+	yaw = 0,
+	clamp = false,
+}
+
+---Add a new blip to the minimap.
+---@param name string Unique blip identifier
+---@param options main.blips.BlipOptions Blip configuration
+function blips:add(name, options)
+	assert(type(name) == "string" and name ~= "", "blip name must be non-empty string")
+	assert(type(options) == "table", "blip options must be a table")
+	assert(type(options.worldX) == "number", "blip worldX must be a number")
+	assert(type(options.worldZ) == "number", "blip worldZ must be a number")
+	assert(not self._blips[name], "blip with the same name already exists: " .. name)
+
+	if options.shape ~= nil then
+		assert(blips.shape[options.shape], "invalid blip shape: " .. tostring(options.shape))
+	end
+
+	---@type main.blips.Blip
+	local newBlip = {
+		name = name,
+		worldX = options.worldX,
+		worldZ = options.worldZ,
+		r = options.r or defaultBlipValues.r,
+		g = options.g or defaultBlipValues.g,
+		b = options.b or defaultBlipValues.b,
+		a = options.a or defaultBlipValues.a,
+		size = options.size or defaultBlipValues.size,
+		shape = options.shape or defaultBlipValues.shape,
+		yaw = options.yaw or defaultBlipValues.yaw,
+		clamp = options.clamp ~= nil and options.clamp or defaultBlipValues.clamp,
+	}
+
+	self._blips[name] = newBlip
+end
+
+---Remove a blip from the minimap.
+---@param name string Blip identifier to remove
+function blips:remove(name)
+	self._blips[name] = nil
+end
+
+---Update properties of an existing blip.
+---@param name string Blip identifier to update
+---@param options table Partial blip options to merge
+function blips:update(name, options)
+	local blip = self._blips[name]
+	assert(blip, "blip not found: " .. tostring(name))
+	assert(type(options) == "table", "blip options must be a table")
+
+	if options.shape ~= nil then
+		assert(blips.shape[options.shape], "invalid blip shape: " .. tostring(options.shape))
+	end
+
+	for k, v in pairs(options) do
+		blip[k] = v
+	end
+end
+
+---Get blip data by name.
+---@param name string Blip identifier
+---@return main.blips.Blip|nil blip The blip data, or nil if not found
+function blips:get(name)
+	return self._blips[name]
+end
+
+local shapeRenderers = {
+	square = function(x, y, size, r, g, b, a, _)
+		renderer.drawSquare2D(x, y, size, r, g, b, a)
+	end,
+
+	rectangle = function(x, y, size, r, g, b, a, yaw)
+		renderer.drawRectangleRotated2D(x, y, size * 2, size, yaw, r, g, b, a)
+	end,
+
+	diamond = function(x, y, size, r, g, b, a, _)
+		renderer.drawRectangleRotated2D(x, y, size, size, math.pi / 4, r, g, b, a)
+	end,
+
+	circle = function(x, y, size, r, g, b, a, _)
+		renderer.drawMapCircle(x, y, size, r, g, b, a, 0)
+	end,
+
+	arrow = function(x, y, size, r, g, b, a, yaw)
+		renderer.drawMapCircle(x, y, size, r, g, b, a, yaw)
+	end,
+}
+
+-- The minimap has a visible radius of approximately 125 map-space units.
+local MAP_RADIUS = 125
+
+local function clampDeltaToRadius(deltaX, deltaY, radius)
+	local dist = math.sqrt(deltaX * deltaX + deltaY * deltaY)
+	if dist > radius and dist > 0 then
+		local ratio = radius / dist
+		return deltaX * ratio, deltaY * ratio
+	end
+
+	return deltaX, deltaY
+end
+
+function blips._render(centerWorldX, centerWorldZ, worldToMapScale, minimapCenterX, minimapCenterY, mapYaw, minimapRadius)
+	local isCustomMinimapMode = type(worldToMapScale) == "number"
+		and type(minimapCenterX) == "number"
+		and type(minimapCenterY) == "number"
+
+	if not isCustomMinimapMode then
+		local mapLegendPosX = centerWorldX
+		local mapLegendPosY = centerWorldZ
+		local scale = (client.isMapAutoGenerated == 0) and 0.125 or 0.25
+
+		for _, blip in pairs(blips._blips) do
+			local mapX = (blip.worldX - mapLegendPosX) * scale
+			local mapY = (blip.worldZ - mapLegendPosY) * scale
+
+			if blip.clamp then
+				local clampRadius = MAP_RADIUS - blip.size
+				if clampRadius < 0 then
+					clampRadius = 0
+				end
+
+				mapX, mapY = clampDeltaToRadius(mapX, mapY, clampRadius)
+			end
+
+			local draw = shapeRenderers[blip.shape]
+			if draw then
+				draw(mapX, mapY, blip.size, blip.r, blip.g, blip.b, blip.a, blip.yaw)
+			end
+		end
+
+		return
+	end
+
+	local yaw = mapYaw or 0
+	local sinYaw = math.sin(yaw)
+	local cosYaw = math.cos(yaw)
+	local radius = minimapRadius or MAP_RADIUS
+
+	for _, blip in pairs(blips._blips) do
+		local relX = (blip.worldX - centerWorldX) * worldToMapScale
+		local relY = (blip.worldZ - centerWorldZ) * worldToMapScale
+
+		local mapX = cosYaw * relX - sinYaw * relY
+		local mapY = sinYaw * relX + cosYaw * relY
+
+		if blip.clamp then
+			local clampRadius = radius - blip.size
+			if clampRadius < 0 then
+				clampRadius = 0
+			end
+
+			mapX, mapY = clampDeltaToRadius(mapX, mapY, clampRadius)
+		end
+
+		local draw = shapeRenderers[blip.shape]
+		if draw then
+			draw(
+				minimapCenterX + mapX,
+				minimapCenterY + mapY,
+				blip.size,
+				blip.r,
+				blip.g,
+				blip.b,
+				blip.a,
+				blip.yaw + yaw
+			)
+		end
+	end
+end
+
+hook.add("DrawMapMarkers", "main.blips", function(...)
+	blips._render(...)
+end)
+
+return blips
