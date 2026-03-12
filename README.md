@@ -1,96 +1,75 @@
 # Sub Rosa: Custom Core
 
-The standard Lua runtime for Sub Rosa: Custom on the client.
+`core` is the standard client-side Lua implementation for SRC.
 
-This repository is the client-side scripting layer that runs on top of the native `client` module. It provides the plugin system, mode loading, config loading, input dispatch, blips, enums, shared helpers, and the client/server event bridge exposed to Lua.
+It is optional, but it is the sane default. Think of it as the SRC-side equivalent of `RosaServerCore`: not strictly required for the platform to function, but the standard baseline implementation you actually want to build on.
 
-Requires:
+`core` is not the native client mod. It is Lua code that runs on top of `client`, and it is typically sent to players by the server through `rs_integration`.
 
-- [Sub Rosa: Custom Client](https://github.com/SubRosaCustom/client)
-- [RosaServer](https://github.com/jpxs-intl/RosaServer) if you also want server-backed sync through `rs_integration`
+## What It Does
 
-# Getting Started
+`core` provides the standard client Lua layer for SRC, including:
 
-## Layout
+- plugin loading
+- mode loading
+- config loading
+- input dispatch
+- blip management
+- shared helpers and enums
+- typed data helpers
+- the Lua-facing client/server event bridge
 
-- `main/` contains the runtime entrypoint and core libraries.
-- `plugins/` contains client plugins.
-- `modes/` contains client gamemodes.
+This is the repository you build on when you want standard client-side gameplay/UI logic in Lua instead of writing everything from scratch.
 
-The runtime starts from `main/init.lua`.
+## Project Layout
+
+- `main/init.lua` boots the runtime
+- `main/plugins.lua` owns plugin lifecycle
+- `main/hook.lua` owns the Lua hook bus
+- `main/input.lua` owns input dispatch
+- `main/blips.lua` owns blip state and helpers
+- `modes/` contains client modes
+- `plugins/` contains client plugins
+
+## Runtime Role
+
+Typical deployment looks like this:
+
+- `client` runs locally in the game process
+- `rs_integration` runs on the server
+- `core` lives under the server's synced client root
+- `rs_integration` sends `core` to the client
+- `client` loads and runs it
+
+That means `core` is optional in a technical sense, but in practice it is the standard implementation layer for SRC.
 
 ## Configuration
 
-Configuration is read from `config.yml` through `loadConfig()`. If the file is missing, the runtime falls back to an empty config with `plugins = {}`.
+`core` reads `config.yml` through its Lua startup path.
 
-Useful fields already consumed by the runtime:
+Current runtime behavior uses config such as:
 
 - `plugins`
 - `defaultGameMode`
 
-If `hook.persistentMode` is not already set, `defaultGameMode` becomes the initial mode.
+If no persistent mode is already set, `defaultGameMode` becomes the initial mode.
 
-## Scripting Model
+## Scope
 
-This tree behaves much closer to `RosaServerCore` than to a loose script dump:
+`core` owns client Lua behavior.
 
-- plugins are loaded through `main/plugins.lua`
-- plugins can register hooks, enable handlers, disable handlers, and hot-reload state
-- modes live separately from plugins
-- the core exposes client-side helpers such as `hook`, `input`, `blips`, `enum`, `gameUtil`, and typed data helpers
+It does not own:
 
-## Events
+- native hooks
+- the TCP transport
+- file transfer
+- low-level rendering hooks
+- server authority or RosaServer integration
 
-The runtime exposes a bidirectional event bridge:
+Those concerns belong to `client` and `rs_integration`.
 
-- `onServerEvent(name, fn)`
-- `emitServerEvent(name, data, bin)`
+## Related Repositories
 
-That bridge is consumed by `rs_integration` on the server side and by the native `client` module on the transport side.
-
-# Technical Notes
-
-## What This Repo Owns
-
-This repo is responsible for:
-
-- loading and reloading client Lua code
-- plugin and mode orchestration
-- config parsing
-- client-side utility APIs
-- dispatching server-originated events into Lua
-
-This repo is not responsible for:
-
-- native hooks or rendering internals
-- transport, file sync, or TCP lifecycle
-- server administration or account/gameplay authority
-
-Those concerns live in `client/` and `rs_integration/`.
-
-## Important Files
-
-- `main/init.lua` boots the runtime and config flow
-- `main/plugins.lua` implements plugin discovery, lifecycle, and reload behavior
-- `main/blips.lua` owns Lua-side blip state
-- `main/input.lua` owns keybind/input dispatch
-- `main/hook.lua` owns the hook bus used by plugins and modes
-
-# Development
-
-## Plugins
-
-Drop plugin entry files under `plugins/` and load them through the existing plugin runtime. The showcase plugin in `plugins/showcase.lua` is the practical reference point in this tree.
-
-## Modes
-
-Drop mode files under `modes/`. `config.defaultGameMode` or `hook.persistentMode` selects the active mode.
-
-## IntelliSense
-
-If you want editor support, use the same Lua tooling people already use for RosaServer projects:
-
-- VS Code with Lua Language Server
-- IntelliJ with EmmyLua support
-
-There is no point pretending this repo currently ships a polished `.meta` setup like JPXS `RosaServerCore`; it does not.
+- [`client`](https://github.com/SubRosaCustom/client): native client mod that hosts this Lua runtime
+- [`rs_integration`](https://github.com/SubRosaCustom/rs_integration): server-side integration that syncs this repository to clients
+- [`RosaServerCore`](https://github.com/jpxs-intl/RosaServerCore): the closest upstream conceptual equivalent on the server side
