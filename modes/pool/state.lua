@@ -39,9 +39,6 @@ function state.requestState(context, forceSeatClaim)
 	local payload = {
 		localTick = context.localTicks,
 	}
-	if forceSeatClaim then
-		payload.claimSeat = true
-	end
 
 	return emit(constants.EVENTS.requestState, payload)
 end
@@ -80,7 +77,7 @@ function state.logicTick(context)
 
 	if context.snapshot == nil then
 		if context.localTicks == 1 or context.localTicks % constants.RESUBSCRIBE_TICKS == 0 then
-			state.requestState(context, true)
+			state.requestState(context, false)
 		end
 		return
 	end
@@ -88,7 +85,7 @@ function state.logicTick(context)
 	if context.lastSnapshotTick >= 0 and (context.localTicks - context.lastSnapshotTick) > constants.STATE_TIMEOUT_TICKS then
 		context.snapshot = nil
 		context.noticeLine = "Pool server state timed out. Re-requesting."
-		state.requestState(context, true)
+		state.requestState(context, false)
 	elseif context.localTicks % constants.RESUBSCRIBE_TICKS == 0 then
 		state.requestState(context, false)
 	end
@@ -141,6 +138,30 @@ function state.getSeatDisplay(snapshot, seat)
 	end
 
 	return "-"
+end
+
+function state.getSeatInfo(context, seat)
+	local snapshot = context.snapshot
+	local seats = snapshot and snapshot.seats
+	if type(seats) ~= "table" then
+		return nil
+	end
+
+	local info = seats[seat]
+	if type(info) ~= "table" then
+		return nil
+	end
+
+	return info
+end
+
+function state.getPhase(context)
+	local snapshot = context.snapshot
+	if type(snapshot) ~= "table" or type(snapshot.phase) ~= "string" then
+		return "waiting"
+	end
+
+	return snapshot.phase
 end
 
 return state

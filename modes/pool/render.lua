@@ -59,7 +59,9 @@ function render.drawUI(context, state)
 	local statusText = context.noticeLine
 	local handText = " "
 	local seatText = "Seat: Spectator"
-	local controlsText = "Arrows aim/power | Space shoot | R rerack | WASD move cue ball"
+	local scoreText = "Score: P1 0 - 0 P2"
+	local phaseText = "Phase: Waiting"
+	local controlsText = "J join | L leave | Enter ready | Arrows aim/power | Space shoot | R rerack | WASD move cue ball"
 
 	if type(snapshot) == "table" then
 		if snapshot.winner then
@@ -90,6 +92,26 @@ function render.drawUI(context, state)
 		else
 			seatText = "Seat: Spectator"
 		end
+
+		local seatOne = state.getSeatInfo(context, 1)
+		local seatTwo = state.getSeatInfo(context, 2)
+		local scoreOne = seatOne and tonumber(seatOne.wins) or 0
+		local scoreTwo = seatTwo and tonumber(seatTwo.wins) or 0
+		scoreText = string.format("Score: P1 %d - %d P2", scoreOne or 0, scoreTwo or 0)
+
+		local function readyText(info)
+			if not info then
+				return "-"
+			end
+			return info.ready and "Ready" or "Not Ready"
+		end
+
+		phaseText = "Phase: "
+			.. tostring(snapshot.phase or "waiting")
+			.. " | P1 "
+			.. readyText(seatOne)
+			.. " | P2 "
+			.. readyText(seatTwo)
 	end
 
 	renderer:drawText(heading, x, y, scale, 0.90, 0.95, 1.00, 1.00, 0x20)
@@ -99,6 +121,10 @@ function render.drawUI(context, state)
 	renderer:drawText(assignText, x, y, scale, 0.95, 0.95, 0.95, 1.00, 0x20)
 	y = y + scale
 	renderer:drawText(seatText, x, y, scale, 0.75, 0.95, 1.00, 1.00, 0x20)
+	y = y + scale
+	renderer:drawText(scoreText, x, y, scale, 0.90, 0.90, 0.70, 1.00, 0x20)
+	y = y + scale
+	renderer:drawText(phaseText, x, y, scale, 0.75, 0.95, 0.75, 1.00, 0x20)
 	y = y + scale
 	renderer:drawText(shotText, x, y, scale, 0.95, 0.95, 0.95, 1.00, 0x20)
 	y = y + scale

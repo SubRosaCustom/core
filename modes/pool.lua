@@ -58,7 +58,7 @@ plugin:addEnableHandler(function()
 
 	state.ensureModelsLoaded(context)
 	poolInput.bind(context, state)
-	state.requestState(context, true)
+	state.requestState(context, false)
 end)
 
 plugin:addDisableHandler(function()

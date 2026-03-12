@@ -9,7 +9,7 @@ end
 
 local function sendStepCommand(context, state, action, payload)
 	if not context.snapshot then
-		state.requestState(context, true)
+		state.requestState(context, false)
 		return
 	end
 
@@ -96,6 +96,24 @@ function poolInput.bind(context, state)
 	input:bind(binds.rerack, plugin.config.rerackScancode, function(_, toggled)
 		if toggled then
 			sendStepCommand(context, state, "rerack")
+		end
+	end, true, 5)
+
+	input:bind(binds.join, plugin.config.joinScancode, function(_, toggled)
+		if toggled then
+			sendStepCommand(context, state, "join")
+		end
+	end, true, 5)
+
+	input:bind(binds.leave, plugin.config.leaveScancode, function(_, toggled)
+		if toggled then
+			sendStepCommand(context, state, "leave")
+		end
+	end, true, 5)
+
+	input:bind(binds.ready, plugin.config.readyScancode, function(_, toggled)
+		if toggled then
+			sendStepCommand(context, state, "ready")
 		end
 	end, true, 5)
 end
