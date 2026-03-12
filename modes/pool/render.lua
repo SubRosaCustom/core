@@ -8,14 +8,14 @@ function render.renderFrame(context, state)
 
 	local tableModel = context.loadedModelIds.table
 	if type(tableModel) == "number" then
-		renderer.renderCMO(tableModel, constants.TABLE_POS, constants.TABLE_ROT)
+		renderer:renderObject(tableModel, constants.TABLE_POS, constants.TABLE_ROT)
 	end
 
 	for _, ball in ipairs(context.balls) do
 		if ball.active then
 			local modelId = context.loadedModelIds[ball.modelName]
 			if type(modelId) == "number" then
-				renderer.renderCMO(modelId, constants.localToWorld(ball.x, ball.z), constants.TABLE_ROT)
+				renderer:renderObject(modelId, constants.localToWorld(ball.x, ball.z), constants.TABLE_ROT)
 			end
 		end
 	end
@@ -30,7 +30,7 @@ function render.renderFrame(context, state)
 			local cueX = cueBall.x - (dirX * cueDistance)
 			local cueZ = cueBall.z - (dirZ * cueDistance)
 			local cueRot = yawToRotMatrix(context.cueAim + (math.pi * 0.5))
-			renderer.renderCMO(cueModelId, constants.localToWorld(cueX, cueZ), cueRot)
+			renderer:renderObject(cueModelId, constants.localToWorld(cueX, cueZ), cueRot)
 		end
 	end
 end
@@ -48,19 +48,19 @@ function render.drawUI(context)
 	local handText = context.ballInHand and "Ball in hand: use WASD to place cue ball." or " "
 	local controlsText = "Arrows aim/power | Space shoot | R rerack"
 
-	renderer.drawText(heading, x, y, scale, 0.90, 0.95, 1.00, 1.00, 0x20)
+	renderer:drawText(heading, x, y, scale, 0.90, 0.95, 1.00, 1.00, 0x20)
 	y = y + scale
-	renderer.drawText(turnText, x, y, scale, 1.00, 1.00, 1.00, 1.00, 0x20)
+	renderer:drawText(turnText, x, y, scale, 1.00, 1.00, 1.00, 1.00, 0x20)
 	y = y + scale
-	renderer.drawText(assignText, x, y, scale, 0.95, 0.95, 0.95, 1.00, 0x20)
+	renderer:drawText(assignText, x, y, scale, 0.95, 0.95, 0.95, 1.00, 0x20)
 	y = y + scale
-	renderer.drawText(shotText, x, y, scale, 0.95, 0.95, 0.95, 1.00, 0x20)
+	renderer:drawText(shotText, x, y, scale, 0.95, 0.95, 0.95, 1.00, 0x20)
 	y = y + scale
-	renderer.drawText(context.statusLine, x, y, scale, 1.00, 0.85, 0.35, 1.00, 0x20)
+	renderer:drawText(context.statusLine, x, y, scale, 1.00, 0.85, 0.35, 1.00, 0x20)
 	y = y + scale
-	renderer.drawText(handText, x, y, scale, 0.75, 1.00, 0.75, 1.00, 0x20)
+	renderer:drawText(handText, x, y, scale, 0.75, 1.00, 0.75, 1.00, 0x20)
 	y = y + scale
-	renderer.drawText(controlsText, x, y, scale, 0.80, 0.80, 0.80, 1.00, 0x20)
+	renderer:drawText(controlsText, x, y, scale, 0.80, 0.80, 0.80, 1.00, 0x20)
 end
 
 return render

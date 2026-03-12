@@ -67,7 +67,7 @@ end
 function state.ensureModelsLoaded(context)
 	for _, name in ipairs(constants.modelNames) do
 		if context.loadedModelIds[name] == nil then
-			local modelId = renderer.loadCMO(name)
+			local modelId = renderer:loadCMO(name)
 			if modelId and modelId ~= -1 then
 				context.loadedModelIds[name] = modelId
 			else
