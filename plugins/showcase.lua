@@ -167,10 +167,10 @@ plugin:addHook("DrawUI", function()
 	local y = plugin.config.overlayY
 	local scale = plugin.config.textScale
 
-	renderer.drawText("SRCC Showcase", x, y, scale, statusColor[1], statusColor[2], statusColor[3], statusColor[4], 0x20)
+	renderer:drawText("SRCC Showcase", x, y, scale, statusColor[1], statusColor[2], statusColor[3], statusColor[4], 0x20)
 	y = y + plugin.config.textScale
 
-	renderer.drawText(
+	renderer:drawText(
 		"Tick: " .. tostring(ticks) .. "  Server: " .. tostring(client.serverAddress) .. ":" .. tostring(client.serverPort),
 		x,
 		y,
@@ -184,7 +184,7 @@ plugin:addHook("DrawUI", function()
 	y = y + plugin.config.textScale
 
 	for i = 1, #overlayLines do
-		renderer.drawText(overlayLines[i], x, y, scale, 1.0, 1.0, 1.0, 1.0, 0x20)
+		renderer:drawText(overlayLines[i], x, y, scale, 1.0, 1.0, 1.0, 1.0, 0x20)
 		y = y + plugin.config.textScale
 	end
 end)
