@@ -8,7 +8,6 @@ require("main.blips")
 require("main.enum")
 require("main.dataTyper")
 require("main.gameUtil")
-require("main.http")
 
 local json = require("main.json")
 local yaml = require("main.yaml")
