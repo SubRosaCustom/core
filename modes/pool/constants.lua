@@ -60,6 +60,16 @@ constants.BINDS = {
 	moveCueDown = "pool_move_cue_down",
 }
 
+constants.EVENTS = {
+	requestState = "srcc.pool.request_state",
+	command = "srcc.pool.command",
+	state = "srcc.pool.state",
+	notice = "srcc.pool.notice",
+}
+
+constants.RESUBSCRIBE_TICKS = 180
+constants.STATE_TIMEOUT_TICKS = 360
+
 constants.modelNames = { "table", "cue", "cueball" }
 for i = 1, 15 do
 	table.insert(constants.modelNames, "ball" .. i)
