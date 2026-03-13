@@ -91,6 +91,7 @@ plugin:addHook("RenderFrame", function()
 		return
 	end
 
+	plugin:print("RenderFrame hook")
 	render.updateCamera(context, state)
 	render.renderFrame(context, state)
 end)
@@ -101,6 +102,7 @@ plugin:addHook("Draw3D", function()
 		return
 	end
 
+	plugin:print("Draw3D hook")
 	render.draw3D(context, state)
 end)
 
