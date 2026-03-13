@@ -11,7 +11,7 @@ local function drawLabel(text, x, y, scale, r, g, b, a)
 	renderer:drawText(text, x, y, scale, r, g, b, a, 0x20)
 end
 
-local function applyTableCamera(context, state)
+function render.updateCamera(context, state)
 	if not state.shouldUseTableCamera(context) or not client or not client.camera then
 		state.restoreCamera(context)
 		return
@@ -28,7 +28,6 @@ end
 
 function render.renderFrame(context, state)
 	state.ensureModelsLoaded(context)
-	applyTableCamera(context, state)
 
 	local snapshot = context.snapshot
 	if type(snapshot) ~= "table" then

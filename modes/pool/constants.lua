@@ -31,15 +31,15 @@ constants.TABLE_POS = Vector(1610, 23.91, 1192)
 constants.TABLE_ROT = orientations.n
 constants.BALL_HEIGHT = 1.2
 constants.CAMERA_FOV = 0.82
-constants.SPECTATOR_CAMERA_POS_LOCAL = Vector(6.3, 3.4, 0.0)
-constants.SPECTATOR_CAMERA_TARGET_LOCAL = Vector(1.1, 1.05, 0.0)
+constants.SPECTATOR_CAMERA_POS_LOCAL = Vector(-0.85, 3.1, 0.0)
+constants.SPECTATOR_CAMERA_TARGET_LOCAL = Vector(1.45, 1.05, 0.0)
 constants.SEAT_CAMERA_POS_LOCAL = {
-	[1] = Vector(5.0, 2.5, -1.55),
-	[2] = Vector(5.0, 2.5, 1.55),
+	[1] = Vector(-0.35, 2.45, -1.45),
+	[2] = Vector(-0.35, 2.45, 1.45),
 }
 constants.SEAT_CAMERA_TARGET_LOCAL = {
-	[1] = Vector(1.45, 1.10, -0.10),
-	[2] = Vector(1.45, 1.10, 0.10),
+	[1] = Vector(1.55, 1.10, -0.08),
+	[2] = Vector(1.55, 1.10, 0.08),
 }
 
 constants.TABLE_MIN_X = -1.36
