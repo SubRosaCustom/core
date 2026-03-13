@@ -11,6 +11,138 @@ local function drawLabel(text, x, y, scale, r, g, b, a)
 	renderer:drawText(text, x, y, scale, r, g, b, a, 0x20)
 end
 
+local function worldDebugPoint(x, z, y)
+	return constants.TABLE_POS + (Vector(x, y or constants.DEBUG_LINE_HEIGHT, z) * constants.TABLE_ROT)
+end
+
+local function drawTableDebug(context, state)
+	local snapshot = context.snapshot
+	if type(snapshot) ~= "table" then
+		return
+	end
+
+	local minX = constants.TABLE_MIN_X
+	local maxX = constants.TABLE_MAX_X
+	local minZ = constants.TABLE_MIN_Z
+	local maxZ = constants.TABLE_MAX_Z
+
+	renderer:setDebugBatchColor(0.25, 1.0, 0.72, 0.95)
+	renderer:beginDebugBatch(2)
+	renderer:addDebugBatchVertex(worldDebugPoint(minX, minZ))
+	renderer:addDebugBatchVertex(worldDebugPoint(maxX, minZ))
+	renderer:addDebugBatchVertex(worldDebugPoint(maxX, minZ))
+	renderer:addDebugBatchVertex(worldDebugPoint(maxX, maxZ))
+	renderer:addDebugBatchVertex(worldDebugPoint(maxX, maxZ))
+	renderer:addDebugBatchVertex(worldDebugPoint(minX, maxZ))
+	renderer:addDebugBatchVertex(worldDebugPoint(minX, maxZ))
+	renderer:addDebugBatchVertex(worldDebugPoint(minX, minZ))
+	renderer:flushDebugBatch()
+
+	renderer:setDebugBatchColor(0.86, 0.84, 0.34, 0.80)
+	renderer:beginDebugBatch(2)
+	renderer:addDebugBatchVertex(worldDebugPoint(constants.HEAD_STRING_X, minZ))
+	renderer:addDebugBatchVertex(worldDebugPoint(constants.HEAD_STRING_X, maxZ))
+	renderer:flushDebugBatch()
+
+	for i = 1, #constants.pocketCenters do
+		local pocket = constants.pocketCenters[i]
+		renderer:drawDebugSolidBox3D(
+			constants.localToWorld(pocket.x, pocket.z),
+			constants.TABLE_ROT,
+			constants.POCKET_RADIUS,
+			constants.DEBUG_ZONE_THICKNESS,
+			constants.POCKET_RADIUS,
+			0.98,
+			0.26,
+			0.26,
+			0.20
+		)
+	end
+
+	if snapshot.ballInHand then
+		local zoneCenterX = (constants.HEAD_STRING_X + constants.TABLE_MAX_X - constants.BALL_RADIUS) * 0.5
+		local zoneHalfX = (constants.TABLE_MAX_X - constants.BALL_RADIUS - constants.HEAD_STRING_X) * 0.5
+		local zoneHalfZ = (constants.TABLE_MAX_Z - constants.TABLE_MIN_Z - constants.BALL_RADIUS * 2.0) * 0.5
+		renderer:drawDebugSolidBox3D(
+			worldDebugPoint(zoneCenterX, 0.0, constants.DEBUG_ZONE_HEIGHT),
+			constants.TABLE_ROT,
+			math.max(zoneHalfX, 0.02),
+			constants.DEBUG_ZONE_THICKNESS,
+			math.max(zoneHalfZ, 0.02),
+			0.30,
+			0.62,
+			1.0,
+			0.14
+		)
+	end
+
+	local cueBall = state.getCueBall(context)
+	if not cueBall or not cueBall.active or snapshot.moving == true or snapshot.winner ~= nil then
+		return
+	end
+
+	local aim = tonumber(snapshot.cueAim) or 0.0
+	local power = tonumber(snapshot.shotPower) or constants.MIN_SHOT_POWER
+	local dirX = math.cos(aim)
+	local dirZ = math.sin(aim)
+	local posX = cueBall.x
+	local posZ = cueBall.z
+	local remaining = (math.max(constants.MIN_SHOT_POWER, power) * constants.SHOT_POWER_SCALE) * 26.0
+
+	renderer:setDebugBatchColor(1.0, 0.92, 0.34, 0.95)
+	renderer:beginDebugBatch(2)
+
+	for _ = 1, constants.DEBUG_PREDICTION_STEPS do
+		if remaining <= 0.01 then
+			break
+		end
+
+		local tx = math.huge
+		local tz = math.huge
+
+		if dirX > 0.0001 then
+			tx = (maxX - posX) / dirX
+		elseif dirX < -0.0001 then
+			tx = (minX - posX) / dirX
+		end
+
+		if dirZ > 0.0001 then
+			tz = (maxZ - posZ) / dirZ
+		elseif dirZ < -0.0001 then
+			tz = (minZ - posZ) / dirZ
+		end
+
+		local hitDistance = math.min(tx, tz, remaining)
+		if hitDistance == math.huge or hitDistance <= 0 then
+			break
+		end
+
+		local nextX = posX + (dirX * hitDistance)
+		local nextZ = posZ + (dirZ * hitDistance)
+		renderer:addDebugBatchVertex(worldDebugPoint(posX, posZ))
+		renderer:addDebugBatchVertex(worldDebugPoint(nextX, nextZ))
+
+		local hitX = math.abs(hitDistance - tx) < 0.001
+		local hitZ = math.abs(hitDistance - tz) < 0.001
+		posX = math.clamp(nextX, minX, maxX)
+		posZ = math.clamp(nextZ, minZ, maxZ)
+		remaining = remaining - hitDistance
+
+		if hitX then
+			dirX = -dirX
+		end
+		if hitZ then
+			dirZ = -dirZ
+		end
+
+		if not hitX and not hitZ then
+			break
+		end
+	end
+
+	renderer:flushDebugBatch()
+end
+
 function render.updateCamera(context, state)
 	if not state.shouldUseTableCamera(context) or not client or not client.camera then
 		state.restoreCamera(context)
@@ -37,18 +169,6 @@ function render.renderFrame(context, state)
 	local tableModel = context.loadedModelIds.table
 	if type(tableModel) == "number" then
 		renderer:renderObject(tableModel, constants.TABLE_POS, constants.TABLE_ROT)
-	end
-
-	for i = 1, #constants.debugCornerMarkers do
-		local marker = constants.debugCornerMarkers[i]
-		local markerModelId = context.loadedModelIds[marker.modelName]
-		if type(markerModelId) == "number" then
-			renderer:renderObject(
-				markerModelId,
-				constants.TABLE_POS + (Vector(marker.x, constants.DEBUG_MARKER_HEIGHT, marker.z) * constants.TABLE_ROT),
-				constants.TABLE_ROT
-			)
-		end
 	end
 
 	local balls = snapshot.balls
@@ -79,6 +199,8 @@ function render.renderFrame(context, state)
 			renderer:renderObject(cueModelId, constants.localToWorld(cueX, cueZ), cueRot)
 		end
 	end
+
+	drawTableDebug(context, state)
 end
 
 function render.drawUI(context, state)
