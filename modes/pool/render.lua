@@ -15,6 +15,32 @@ local function worldDebugPoint(x, z, y)
 	return constants.TABLE_POS + (Vector(x, y or constants.DEBUG_LINE_HEIGHT, z) * constants.TABLE_ROT)
 end
 
+local function drawLineStrip(points, r, g, b, a)
+	if #points < 2 then
+		return
+	end
+
+	renderer:resetDebugBatchTransform()
+	renderer:setDebugBatchColor(r, g, b, a)
+	renderer:beginDebugBatch(2)
+	for i = 1, #points - 1 do
+		renderer:addDebugBatchVertex(points[i])
+		renderer:addDebugBatchVertex(points[i + 1])
+	end
+	renderer:flushDebugBatch()
+end
+
+local function drawCross(x, z, size, y, r, g, b, a)
+	drawLineStrip({
+		worldDebugPoint(x - size, z, y),
+		worldDebugPoint(x + size, z, y),
+	}, r, g, b, a)
+	drawLineStrip({
+		worldDebugPoint(x, z - size, y),
+		worldDebugPoint(x, z + size, y),
+	}, r, g, b, a)
+end
+
 local function drawTableDebug(context, state)
 	local snapshot = context.snapshot
 	if type(snapshot) ~= "table" then
@@ -34,31 +60,29 @@ local function drawTableDebug(context, state)
 		(maxX - minX) * 0.5,
 		constants.DEBUG_ZONE_THICKNESS,
 		(maxZ - minZ) * 0.5,
-		0.20,
+		0.16,
 		1.0,
-		0.68,
+		0.72,
 		1.0
 	)
 
-	renderer:resetDebugBatchTransform()
-	renderer:setDebugBatchColor(0.25, 1.0, 0.72, 0.95)
-	renderer:beginDebugBatch(2)
-	renderer:addDebugBatchVertex(worldDebugPoint(minX, minZ))
-	renderer:addDebugBatchVertex(worldDebugPoint(maxX, minZ))
-	renderer:addDebugBatchVertex(worldDebugPoint(maxX, minZ))
-	renderer:addDebugBatchVertex(worldDebugPoint(maxX, maxZ))
-	renderer:addDebugBatchVertex(worldDebugPoint(maxX, maxZ))
-	renderer:addDebugBatchVertex(worldDebugPoint(minX, maxZ))
-	renderer:addDebugBatchVertex(worldDebugPoint(minX, maxZ))
-	renderer:addDebugBatchVertex(worldDebugPoint(minX, minZ))
-	renderer:flushDebugBatch()
+	drawLineStrip({
+		worldDebugPoint(minX, minZ),
+		worldDebugPoint(maxX, minZ),
+		worldDebugPoint(maxX, maxZ),
+		worldDebugPoint(minX, maxZ),
+		worldDebugPoint(minX, minZ),
+	}, 0.26, 1.0, 0.78, 0.96)
 
-	renderer:resetDebugBatchTransform()
-	renderer:setDebugBatchColor(0.86, 0.84, 0.34, 0.80)
-	renderer:beginDebugBatch(2)
-	renderer:addDebugBatchVertex(worldDebugPoint(constants.HEAD_STRING_X, minZ))
-	renderer:addDebugBatchVertex(worldDebugPoint(constants.HEAD_STRING_X, maxZ))
-	renderer:flushDebugBatch()
+	drawLineStrip({
+		worldDebugPoint(centerX, minZ),
+		worldDebugPoint(centerX, maxZ),
+	}, 0.34, 0.90, 1.0, 0.72)
+
+	drawLineStrip({
+		worldDebugPoint(constants.HEAD_STRING_X, minZ),
+		worldDebugPoint(constants.HEAD_STRING_X, maxZ),
+	}, 1.0, 0.88, 0.32, 0.88)
 
 	for i = 1, #constants.pocketCenters do
 		local pocket = constants.pocketCenters[i]
@@ -71,8 +95,9 @@ local function drawTableDebug(context, state)
 			0.98,
 			0.26,
 			0.26,
-			0.35
+			0.22
 		)
+		drawCross(pocket.x, pocket.z, 0.12, constants.DEBUG_LINE_HEIGHT + 0.03, 1.0, 0.40, 0.40, 0.95)
 	end
 
 	if snapshot.ballInHand then
@@ -88,12 +113,26 @@ local function drawTableDebug(context, state)
 			0.30,
 			0.62,
 			1.0,
-			0.14
+			0.18
+		)
+		renderer:drawDebugWireBox3D(
+			worldDebugPoint(zoneCenterX, 0.0, constants.DEBUG_ZONE_HEIGHT),
+			constants.TABLE_ROT,
+			math.max(zoneHalfX, 0.02),
+			constants.DEBUG_ZONE_THICKNESS,
+			math.max(zoneHalfZ, 0.02),
+			0.42,
+			0.74,
+			1.0,
+			0.95
 		)
 	end
 
 	local cueBall = state.getCueBall(context)
 	if not cueBall or not cueBall.active or snapshot.moving == true or snapshot.winner ~= nil then
+		if cueBall and cueBall.active then
+			drawCross(cueBall.x, cueBall.z, 0.10, constants.DEBUG_LINE_HEIGHT + 0.02, 1.0, 1.0, 1.0, 0.90)
+		end
 		return
 	end
 
@@ -105,8 +144,9 @@ local function drawTableDebug(context, state)
 	local posZ = cueBall.z
 	local remaining = (math.max(constants.MIN_SHOT_POWER, power) * constants.SHOT_POWER_SCALE) * 26.0
 
-	renderer:setDebugBatchColor(1.0, 0.92, 0.34, 0.95)
-	renderer:beginDebugBatch(2)
+	local predictionPoints = {
+		worldDebugPoint(posX, posZ),
+	}
 
 	for _ = 1, constants.DEBUG_PREDICTION_STEPS do
 		if remaining <= 0.01 then
@@ -135,8 +175,7 @@ local function drawTableDebug(context, state)
 
 		local nextX = posX + (dirX * hitDistance)
 		local nextZ = posZ + (dirZ * hitDistance)
-		renderer:addDebugBatchVertex(worldDebugPoint(posX, posZ))
-		renderer:addDebugBatchVertex(worldDebugPoint(nextX, nextZ))
+		table.insert(predictionPoints, worldDebugPoint(nextX, nextZ))
 
 		local hitX = math.abs(hitDistance - tx) < 0.001
 		local hitZ = math.abs(hitDistance - tz) < 0.001
@@ -156,7 +195,9 @@ local function drawTableDebug(context, state)
 		end
 	end
 
-	renderer:flushDebugBatch()
+	drawLineStrip(predictionPoints, 1.0, 0.92, 0.34, 0.95)
+	drawCross(cueBall.x, cueBall.z, 0.10, constants.DEBUG_LINE_HEIGHT + 0.02, 1.0, 1.0, 1.0, 0.90)
+	drawCross(posX, posZ, 0.08, constants.DEBUG_LINE_HEIGHT + 0.02, 1.0, 0.92, 0.34, 0.95)
 end
 
 function render.updateCamera(context, state)
