@@ -66,6 +66,11 @@ local function drawTableDebug(context, state)
 		return
 	end
 
+	local debugOffsetX = -1.4
+	local function dx(x)
+		return x + debugOffsetX
+	end
+
 	local minX = constants.TABLE_MIN_X
 	local maxX = constants.TABLE_MAX_X
 	local minZ = constants.TABLE_MIN_Z
@@ -76,17 +81,17 @@ local function drawTableDebug(context, state)
 	local safeMaxX = maxX - constants.BALL_RADIUS
 	local safeMinZ = minZ + constants.BALL_RADIUS
 	local safeMaxZ = maxZ - constants.BALL_RADIUS
-	local axisOriginX = (minX - 0.22) - 1.4
+	local axisOriginX = minX - 0.22
 
-	drawArrow(axisOriginX, centerZ, 1.0, 0.0, 0.65, 0.12, constants.DEBUG_LINE_HEIGHT + 0.05, 1.0, 0.18, 0.18, 0.95)
-	drawArrow(axisOriginX, centerZ, 0.0, 1.0, 0.65, 0.12, constants.DEBUG_LINE_HEIGHT + 0.05, 0.18, 0.55, 1.0, 0.95)
+	drawArrow(dx(axisOriginX), centerZ, 1.0, 0.0, 0.65, 0.12, constants.DEBUG_LINE_HEIGHT + 0.05, 1.0, 0.18, 0.18, 0.95)
+	drawArrow(dx(axisOriginX), centerZ, 0.0, 1.0, 0.65, 0.12, constants.DEBUG_LINE_HEIGHT + 0.05, 0.18, 0.55, 1.0, 0.95)
 	drawLineStrip({
-		worldDebugPoint(axisOriginX, centerZ, constants.DEBUG_LINE_HEIGHT - 0.12),
-		worldDebugPoint(axisOriginX, centerZ, constants.DEBUG_LINE_HEIGHT + 0.55),
+		worldDebugPoint(dx(axisOriginX), centerZ, constants.DEBUG_LINE_HEIGHT - 0.12),
+		worldDebugPoint(dx(axisOriginX), centerZ, constants.DEBUG_LINE_HEIGHT + 0.55),
 	}, 0.32, 1.0, 0.32, 0.95)
 
 	renderer:drawDebugWireBox3D(
-		worldDebugPoint(centerX, centerZ, constants.DEBUG_LINE_HEIGHT),
+		worldDebugPoint(dx(centerX), centerZ, constants.DEBUG_LINE_HEIGHT),
 		constants.TABLE_ROT,
 		(maxX - minX) * 0.5,
 		constants.DEBUG_ZONE_THICKNESS,
@@ -98,35 +103,35 @@ local function drawTableDebug(context, state)
 	)
 
 	drawLineStrip({
-		worldDebugPoint(minX, minZ),
-		worldDebugPoint(maxX, minZ),
-		worldDebugPoint(maxX, maxZ),
-		worldDebugPoint(minX, maxZ),
-		worldDebugPoint(minX, minZ),
+		worldDebugPoint(dx(minX), minZ),
+		worldDebugPoint(dx(maxX), minZ),
+		worldDebugPoint(dx(maxX), maxZ),
+		worldDebugPoint(dx(minX), maxZ),
+		worldDebugPoint(dx(minX), minZ),
 	}, 0.26, 1.0, 0.78, 0.96)
 
 	drawLineStrip({
-		worldDebugPoint(safeMinX, safeMinZ, constants.DEBUG_LINE_HEIGHT + 0.04),
-		worldDebugPoint(safeMaxX, safeMinZ, constants.DEBUG_LINE_HEIGHT + 0.04),
-		worldDebugPoint(safeMaxX, safeMaxZ, constants.DEBUG_LINE_HEIGHT + 0.04),
-		worldDebugPoint(safeMinX, safeMaxZ, constants.DEBUG_LINE_HEIGHT + 0.04),
-		worldDebugPoint(safeMinX, safeMinZ, constants.DEBUG_LINE_HEIGHT + 0.04),
+		worldDebugPoint(dx(safeMinX), safeMinZ, constants.DEBUG_LINE_HEIGHT + 0.04),
+		worldDebugPoint(dx(safeMaxX), safeMinZ, constants.DEBUG_LINE_HEIGHT + 0.04),
+		worldDebugPoint(dx(safeMaxX), safeMaxZ, constants.DEBUG_LINE_HEIGHT + 0.04),
+		worldDebugPoint(dx(safeMinX), safeMaxZ, constants.DEBUG_LINE_HEIGHT + 0.04),
+		worldDebugPoint(dx(safeMinX), safeMinZ, constants.DEBUG_LINE_HEIGHT + 0.04),
 	}, 0.52, 0.76, 1.0, 0.82)
 
 	drawLineStrip({
-		worldDebugPoint(centerX, minZ),
-		worldDebugPoint(centerX, maxZ),
+		worldDebugPoint(dx(centerX), minZ),
+		worldDebugPoint(dx(centerX), maxZ),
 	}, 0.34, 0.90, 1.0, 0.72)
 
 	drawLineStrip({
-		worldDebugPoint(constants.HEAD_STRING_X, minZ),
-		worldDebugPoint(constants.HEAD_STRING_X, maxZ),
+		worldDebugPoint(dx(constants.HEAD_STRING_X), minZ),
+		worldDebugPoint(dx(constants.HEAD_STRING_X), maxZ),
 	}, 1.0, 0.88, 0.32, 0.88)
 
 	for i = 1, #constants.pocketCenters do
 		local pocket = constants.pocketCenters[i]
 		renderer:drawDebugSolidBox3D(
-			constants.localToWorld(pocket.x, pocket.z),
+			constants.localToWorld(dx(pocket.x), pocket.z),
 			constants.TABLE_ROT,
 			constants.POCKET_RADIUS,
 			constants.DEBUG_ZONE_THICKNESS,
@@ -136,7 +141,7 @@ local function drawTableDebug(context, state)
 			0.26,
 			0.22
 		)
-		drawCross(pocket.x, pocket.z, 0.12, constants.DEBUG_LINE_HEIGHT + 0.03, 1.0, 0.40, 0.40, 0.95)
+		drawCross(dx(pocket.x), pocket.z, 0.12, constants.DEBUG_LINE_HEIGHT + 0.03, 1.0, 0.40, 0.40, 0.95)
 	end
 
 	local balls = snapshot.balls
@@ -161,7 +166,7 @@ local function drawTableDebug(context, state)
 					colorB = 0.22
 				end
 
-				drawCross(ball.x, ball.z, ball.id == 0 and 0.10 or 0.06, constants.DEBUG_LINE_HEIGHT + 0.02, colorR, colorG, colorB, 0.88)
+				drawCross(dx(ball.x), ball.z, ball.id == 0 and 0.10 or 0.06, constants.DEBUG_LINE_HEIGHT + 0.02, colorR, colorG, colorB, 0.88)
 			end
 		end
 	end
@@ -171,7 +176,7 @@ local function drawTableDebug(context, state)
 		local zoneHalfX = (constants.TABLE_MAX_X - constants.BALL_RADIUS - constants.HEAD_STRING_X) * 0.5
 		local zoneHalfZ = (constants.TABLE_MAX_Z - constants.TABLE_MIN_Z - constants.BALL_RADIUS * 2.0) * 0.5
 		renderer:drawDebugSolidBox3D(
-			worldDebugPoint(zoneCenterX, 0.0, constants.DEBUG_ZONE_HEIGHT),
+			worldDebugPoint(dx(zoneCenterX), 0.0, constants.DEBUG_ZONE_HEIGHT),
 			constants.TABLE_ROT,
 			math.max(zoneHalfX, 0.02),
 			constants.DEBUG_ZONE_THICKNESS,
@@ -182,7 +187,7 @@ local function drawTableDebug(context, state)
 			0.18
 		)
 		renderer:drawDebugWireBox3D(
-			worldDebugPoint(zoneCenterX, 0.0, constants.DEBUG_ZONE_HEIGHT),
+			worldDebugPoint(dx(zoneCenterX), 0.0, constants.DEBUG_ZONE_HEIGHT),
 			constants.TABLE_ROT,
 			math.max(zoneHalfX, 0.02),
 			constants.DEBUG_ZONE_THICKNESS,
@@ -197,7 +202,7 @@ local function drawTableDebug(context, state)
 	local cueBall = state.getCueBall(context)
 	if not cueBall or not cueBall.active or snapshot.moving == true or snapshot.winner ~= nil then
 		if cueBall and cueBall.active then
-			drawCross(cueBall.x, cueBall.z, 0.10, constants.DEBUG_LINE_HEIGHT + 0.02, 1.0, 1.0, 1.0, 0.90)
+			drawCross(dx(cueBall.x), cueBall.z, 0.10, constants.DEBUG_LINE_HEIGHT + 0.02, 1.0, 1.0, 1.0, 0.90)
 		end
 		return
 	end
@@ -211,11 +216,11 @@ local function drawTableDebug(context, state)
 	local remaining = (math.max(constants.MIN_SHOT_POWER, power) * constants.SHOT_POWER_SCALE) * 26.0
 
 	local predictionPoints = {
-		worldDebugPoint(posX, posZ),
+		worldDebugPoint(dx(posX), posZ),
 	}
 	local bouncePoints = {}
 
-	drawArrow(posX, posZ, dirX, dirZ, 0.95, 0.14, constants.DEBUG_LINE_HEIGHT + 0.07, 1.0, 0.92, 0.30, 0.95)
+	drawArrow(dx(posX), posZ, dirX, dirZ, 0.95, 0.14, constants.DEBUG_LINE_HEIGHT + 0.07, 1.0, 0.92, 0.30, 0.95)
 
 	for _ = 1, constants.DEBUG_PREDICTION_STEPS do
 		if remaining <= 0.01 then
@@ -244,7 +249,7 @@ local function drawTableDebug(context, state)
 
 		local nextX = posX + (dirX * hitDistance)
 		local nextZ = posZ + (dirZ * hitDistance)
-		table.insert(predictionPoints, worldDebugPoint(nextX, nextZ))
+		table.insert(predictionPoints, worldDebugPoint(dx(nextX), nextZ))
 
 		local hitX = math.abs(hitDistance - tx) < 0.001
 		local hitZ = math.abs(hitDistance - tz) < 0.001
@@ -268,11 +273,11 @@ local function drawTableDebug(context, state)
 	end
 
 	drawLineStrip(predictionPoints, 1.0, 0.92, 0.34, 0.95)
-	drawCross(cueBall.x, cueBall.z, 0.10, constants.DEBUG_LINE_HEIGHT + 0.02, 1.0, 1.0, 1.0, 0.90)
-	drawCross(posX, posZ, 0.08, constants.DEBUG_LINE_HEIGHT + 0.02, 1.0, 0.92, 0.34, 0.95)
+	drawCross(dx(cueBall.x), cueBall.z, 0.10, constants.DEBUG_LINE_HEIGHT + 0.02, 1.0, 1.0, 1.0, 0.90)
+	drawCross(dx(posX), posZ, 0.08, constants.DEBUG_LINE_HEIGHT + 0.02, 1.0, 0.92, 0.34, 0.95)
 	for i = 1, #bouncePoints do
 		local bounce = bouncePoints[i]
-		drawCross(bounce.x, bounce.z, 0.07, constants.DEBUG_LINE_HEIGHT + 0.04, 1.0, 0.46, 0.18, 0.95)
+		drawCross(dx(bounce.x), bounce.z, 0.07, constants.DEBUG_LINE_HEIGHT + 0.04, 1.0, 0.46, 0.18, 0.95)
 	end
 end
 
