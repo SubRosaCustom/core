@@ -161,7 +161,7 @@ end
 
 function render.updateCamera(context, state)
 	if not state.shouldUseTableCamera(context) or not client or not client.camera then
-		print("[pool] updateCamera skipped")
+		plugin:print("updateCamera skipped")
 		state.restoreCamera(context)
 		return
 	end
@@ -170,8 +170,8 @@ function render.updateCamera(context, state)
 	local seat = state.getLocalSeat(context)
 	local cameraPos = constants.tableCameraPosition(seat)
 	local cameraTarget = constants.tableCameraTarget(seat)
-	print(string.format(
-		"[pool] updateCamera seat=%s pos=(%.2f, %.2f, %.2f) target=(%.2f, %.2f, %.2f)",
+	plugin:print(string.format(
+		"updateCamera seat=%s pos=(%.2f, %.2f, %.2f) target=(%.2f, %.2f, %.2f)",
 		tostring(seat),
 		cameraPos.x,
 		cameraPos.y,
@@ -229,7 +229,7 @@ function render.renderFrame(context, state)
 end
 
 function render.draw3D(context, state)
-	print("[pool] draw3D debug overlay")
+	plugin:print("draw3D debug overlay")
 	drawTableDebug(context, state)
 end
 
