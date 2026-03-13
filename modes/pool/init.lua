@@ -85,21 +85,13 @@ plugin:addHook("Logic", function()
 	state.logicTick(context)
 end)
 
-plugin:addHook("PostPlayerControlHandler", function()
-	local context = activeContext()
-	if not context then
-		return
-	end
-
-	render.updateCamera(context, state)
-end)
-
 plugin:addHook("RenderFrame", function()
 	local context = activeContext()
 	if not context then
 		return
 	end
 
+	render.updateCamera(context, state)
 	render.renderFrame(context, state)
 end)
 
