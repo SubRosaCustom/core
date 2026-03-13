@@ -54,9 +54,9 @@ constants.CUE_START_Z = 0.0
 constants.BALL_RADIUS = 0.10
 constants.BALL_DIAMETER = constants.BALL_RADIUS * 2.0
 constants.POCKET_RADIUS = 0.24
-constants.DEBUG_LINE_HEIGHT = 1.34
-constants.DEBUG_ZONE_HEIGHT = 1.26
-constants.DEBUG_ZONE_THICKNESS = 0.03
+constants.DEBUG_LINE_HEIGHT = 1.65
+constants.DEBUG_ZONE_HEIGHT = 1.56
+constants.DEBUG_ZONE_THICKNESS = 0.06
 constants.DEBUG_PREDICTION_STEPS = 3
 
 constants.TABLE_FRICTION = 0.985

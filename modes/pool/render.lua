@@ -25,7 +25,22 @@ local function drawTableDebug(context, state)
 	local maxX = constants.TABLE_MAX_X
 	local minZ = constants.TABLE_MIN_Z
 	local maxZ = constants.TABLE_MAX_Z
+	local centerX = (minX + maxX) * 0.5
+	local centerZ = (minZ + maxZ) * 0.5
 
+	renderer:drawDebugWireBox3D(
+		worldDebugPoint(centerX, centerZ, constants.DEBUG_LINE_HEIGHT),
+		constants.TABLE_ROT,
+		(maxX - minX) * 0.5,
+		constants.DEBUG_ZONE_THICKNESS,
+		(maxZ - minZ) * 0.5,
+		0.20,
+		1.0,
+		0.68,
+		1.0
+	)
+
+	renderer:resetDebugBatchTransform()
 	renderer:setDebugBatchColor(0.25, 1.0, 0.72, 0.95)
 	renderer:beginDebugBatch(2)
 	renderer:addDebugBatchVertex(worldDebugPoint(minX, minZ))
@@ -38,6 +53,7 @@ local function drawTableDebug(context, state)
 	renderer:addDebugBatchVertex(worldDebugPoint(minX, minZ))
 	renderer:flushDebugBatch()
 
+	renderer:resetDebugBatchTransform()
 	renderer:setDebugBatchColor(0.86, 0.84, 0.34, 0.80)
 	renderer:beginDebugBatch(2)
 	renderer:addDebugBatchVertex(worldDebugPoint(constants.HEAD_STRING_X, minZ))
@@ -55,7 +71,7 @@ local function drawTableDebug(context, state)
 			0.98,
 			0.26,
 			0.26,
-			0.20
+			0.35
 		)
 	end
 
