@@ -76,12 +76,13 @@ local function drawTableDebug(context, state)
 	local safeMaxX = maxX - constants.BALL_RADIUS
 	local safeMinZ = minZ + constants.BALL_RADIUS
 	local safeMaxZ = maxZ - constants.BALL_RADIUS
+	local axisOriginX = (minX - 0.22) - 1.4
 
-	drawArrow(minX - 0.22, centerZ, 1.0, 0.0, 0.65, 0.12, constants.DEBUG_LINE_HEIGHT + 0.05, 1.0, 0.18, 0.18, 0.95)
-	drawArrow(minX - 0.22, centerZ, 0.0, 1.0, 0.65, 0.12, constants.DEBUG_LINE_HEIGHT + 0.05, 0.18, 0.55, 1.0, 0.95)
+	drawArrow(axisOriginX, centerZ, 1.0, 0.0, 0.65, 0.12, constants.DEBUG_LINE_HEIGHT + 0.05, 1.0, 0.18, 0.18, 0.95)
+	drawArrow(axisOriginX, centerZ, 0.0, 1.0, 0.65, 0.12, constants.DEBUG_LINE_HEIGHT + 0.05, 0.18, 0.55, 1.0, 0.95)
 	drawLineStrip({
-		worldDebugPoint(minX - 0.22, centerZ, constants.DEBUG_LINE_HEIGHT - 0.12),
-		worldDebugPoint(minX - 0.22, centerZ, constants.DEBUG_LINE_HEIGHT + 0.55),
+		worldDebugPoint(axisOriginX, centerZ, constants.DEBUG_LINE_HEIGHT - 0.12),
+		worldDebugPoint(axisOriginX, centerZ, constants.DEBUG_LINE_HEIGHT + 0.55),
 	}, 0.32, 1.0, 0.32, 0.95)
 
 	renderer:drawDebugWireBox3D(
