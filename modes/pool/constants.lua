@@ -85,7 +85,7 @@ constants.POCKET_RADIUS = 0.24
 constants.DEBUG_LINE_HEIGHT = 1.65
 constants.DEBUG_ZONE_HEIGHT = 1.56
 constants.DEBUG_ZONE_THICKNESS = 0.06
-constants.DEBUG_PREDICTION_STEPS = 3
+constants.DEBUG_PREDICTION_STEPS = 8
 
 constants.TABLE_FRICTION = 0.985
 constants.RAIL_BOUNCE = 0.96

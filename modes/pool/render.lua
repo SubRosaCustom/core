@@ -41,6 +41,25 @@ local function drawCross(x, z, size, y, r, g, b, a)
 	}, r, g, b, a)
 end
 
+local function drawArrow(x, z, dirX, dirZ, length, headSize, y, r, g, b, a)
+	local endX = x + (dirX * length)
+	local endZ = z + (dirZ * length)
+	drawLineStrip({
+		worldDebugPoint(x, z, y),
+		worldDebugPoint(endX, endZ, y),
+	}, r, g, b, a)
+
+	local leftX = endX - (dirX * headSize) + (dirZ * headSize * 0.65)
+	local leftZ = endZ - (dirZ * headSize) - (dirX * headSize * 0.65)
+	local rightX = endX - (dirX * headSize) - (dirZ * headSize * 0.65)
+	local rightZ = endZ - (dirZ * headSize) + (dirX * headSize * 0.65)
+	drawLineStrip({
+		worldDebugPoint(leftX, leftZ, y),
+		worldDebugPoint(endX, endZ, y),
+		worldDebugPoint(rightX, rightZ, y),
+	}, r, g, b, a)
+end
+
 local function drawTableDebug(context, state)
 	local snapshot = context.snapshot
 	if type(snapshot) ~= "table" then
@@ -53,6 +72,17 @@ local function drawTableDebug(context, state)
 	local maxZ = constants.TABLE_MAX_Z
 	local centerX = (minX + maxX) * 0.5
 	local centerZ = (minZ + maxZ) * 0.5
+	local safeMinX = minX + constants.BALL_RADIUS
+	local safeMaxX = maxX - constants.BALL_RADIUS
+	local safeMinZ = minZ + constants.BALL_RADIUS
+	local safeMaxZ = maxZ - constants.BALL_RADIUS
+
+	drawArrow(minX - 0.22, centerZ, 1.0, 0.0, 0.65, 0.12, constants.DEBUG_LINE_HEIGHT + 0.05, 1.0, 0.18, 0.18, 0.95)
+	drawArrow(minX - 0.22, centerZ, 0.0, 1.0, 0.65, 0.12, constants.DEBUG_LINE_HEIGHT + 0.05, 0.18, 0.55, 1.0, 0.95)
+	drawLineStrip({
+		worldDebugPoint(minX - 0.22, centerZ, constants.DEBUG_LINE_HEIGHT - 0.12),
+		worldDebugPoint(minX - 0.22, centerZ, constants.DEBUG_LINE_HEIGHT + 0.55),
+	}, 0.32, 1.0, 0.32, 0.95)
 
 	renderer:drawDebugWireBox3D(
 		worldDebugPoint(centerX, centerZ, constants.DEBUG_LINE_HEIGHT),
@@ -73,6 +103,14 @@ local function drawTableDebug(context, state)
 		worldDebugPoint(minX, maxZ),
 		worldDebugPoint(minX, minZ),
 	}, 0.26, 1.0, 0.78, 0.96)
+
+	drawLineStrip({
+		worldDebugPoint(safeMinX, safeMinZ, constants.DEBUG_LINE_HEIGHT + 0.04),
+		worldDebugPoint(safeMaxX, safeMinZ, constants.DEBUG_LINE_HEIGHT + 0.04),
+		worldDebugPoint(safeMaxX, safeMaxZ, constants.DEBUG_LINE_HEIGHT + 0.04),
+		worldDebugPoint(safeMinX, safeMaxZ, constants.DEBUG_LINE_HEIGHT + 0.04),
+		worldDebugPoint(safeMinX, safeMinZ, constants.DEBUG_LINE_HEIGHT + 0.04),
+	}, 0.52, 0.76, 1.0, 0.82)
 
 	drawLineStrip({
 		worldDebugPoint(centerX, minZ),
@@ -98,6 +136,33 @@ local function drawTableDebug(context, state)
 			0.22
 		)
 		drawCross(pocket.x, pocket.z, 0.12, constants.DEBUG_LINE_HEIGHT + 0.03, 1.0, 0.40, 0.40, 0.95)
+	end
+
+	local balls = snapshot.balls
+	if type(balls) == "table" then
+		for i = 1, #balls do
+			local ball = balls[i]
+			if ball and ball.active then
+				local colorR = 0.92
+				local colorG = 0.92
+				local colorB = 0.92
+				if ball.id == 0 then
+					colorR = 1.0
+					colorG = 1.0
+					colorB = 1.0
+				elseif ball.id == 8 then
+					colorR = 0.18
+					colorG = 0.18
+					colorB = 0.18
+				else
+					colorR = 1.0
+					colorG = 0.76
+					colorB = 0.22
+				end
+
+				drawCross(ball.x, ball.z, ball.id == 0 and 0.10 or 0.06, constants.DEBUG_LINE_HEIGHT + 0.02, colorR, colorG, colorB, 0.88)
+			end
+		end
 	end
 
 	if snapshot.ballInHand then
@@ -147,6 +212,9 @@ local function drawTableDebug(context, state)
 	local predictionPoints = {
 		worldDebugPoint(posX, posZ),
 	}
+	local bouncePoints = {}
+
+	drawArrow(posX, posZ, dirX, dirZ, 0.95, 0.14, constants.DEBUG_LINE_HEIGHT + 0.07, 1.0, 0.92, 0.30, 0.95)
 
 	for _ = 1, constants.DEBUG_PREDICTION_STEPS do
 		if remaining <= 0.01 then
@@ -182,6 +250,9 @@ local function drawTableDebug(context, state)
 		posX = math.clamp(nextX, minX, maxX)
 		posZ = math.clamp(nextZ, minZ, maxZ)
 		remaining = remaining - hitDistance
+		if hitX or hitZ then
+			table.insert(bouncePoints, { x = posX, z = posZ })
+		end
 
 		if hitX then
 			dirX = -dirX
@@ -198,6 +269,10 @@ local function drawTableDebug(context, state)
 	drawLineStrip(predictionPoints, 1.0, 0.92, 0.34, 0.95)
 	drawCross(cueBall.x, cueBall.z, 0.10, constants.DEBUG_LINE_HEIGHT + 0.02, 1.0, 1.0, 1.0, 0.90)
 	drawCross(posX, posZ, 0.08, constants.DEBUG_LINE_HEIGHT + 0.02, 1.0, 0.92, 0.34, 0.95)
+	for i = 1, #bouncePoints do
+		local bounce = bouncePoints[i]
+		drawCross(bounce.x, bounce.z, 0.07, constants.DEBUG_LINE_HEIGHT + 0.04, 1.0, 0.46, 0.18, 0.95)
+	end
 end
 
 function render.updateCamera(context, state)
