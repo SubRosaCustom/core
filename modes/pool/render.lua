@@ -18,8 +18,11 @@ local function applyTableCamera(context, state)
 	end
 
 	state.captureCamera(context)
-	client.camera.pos:set(constants.tableCameraPosition())
-	client.camera.rot:set(getRotMatrixLookingAt(constants.tableCameraPosition(), constants.tableCameraTarget()))
+	local seat = state.getLocalSeat(context)
+	local cameraPos = constants.tableCameraPosition(seat)
+	local cameraTarget = constants.tableCameraTarget(seat)
+	client.camera.pos:set(cameraPos)
+	client.camera.rot:set(getRotMatrixLookingAt(cameraPos, cameraTarget))
 	client.camera.fov = constants.CAMERA_FOV
 end
 
@@ -96,6 +99,8 @@ function render.drawUI(context, state)
 	local seatTwoName = "Open"
 	local seatOneReady = "Idle"
 	local seatTwoReady = "Idle"
+	local cameraText = "Spectator Camera"
+	local staleText = " "
 
 	if type(snapshot) == "table" then
 		local seatOne = state.getSeatInfo(context, 1)
@@ -125,6 +130,13 @@ function render.drawUI(context, state)
 		seatTwoName = seatTwo and seatTwo.playerName or "Open"
 		seatOneReady = seatOne and (seatOne.ready and "Ready" or "Idle") or "Open"
 		seatTwoReady = seatTwo and (seatTwo.ready and "Ready" or "Idle") or "Open"
+		cameraText = localSeat and ("Player " .. tostring(localSeat) .. " Camera") or "Spectator Camera"
+		if context.lastSnapshotTick >= 0 then
+			local age = context.localTicks - context.lastSnapshotTick
+			if age > math.floor(constants.RESUBSCRIBE_TICKS * 0.5) then
+				staleText = "State stale: waiting for fresh server snapshot."
+			end
+		end
 	end
 
 	drawPanel(contentLeft, contentTop, leftWidth, topHeight, 0.05, 0.12, 0.11, 0.78)
@@ -166,8 +178,10 @@ function render.drawUI(context, state)
 	drawLabel(handText, rightX, y, 16, 0.74, 1.0, 0.79, 1.0)
 	y = y + 26
 	drawLabel(practiceText, rightX, y, 16, 0.76, 0.88, 1.0, 1.0)
+	y = y + 24
+	drawLabel(staleText, rightX, y, 15, 1.0, 0.70, 0.45, 1.0)
 
-	drawLabel("Table View Locked", contentLeft + 18, contentBottom - bottomHeight + 18, 18, 0.74, 0.89, 1.0, 1.0)
+	drawLabel(cameraText, contentLeft + 18, contentBottom - bottomHeight + 18, 18, 0.74, 0.89, 1.0, 1.0)
 	drawLabel(controlsText, contentLeft + 18, contentBottom - bottomHeight + 44, 15, 0.82, 0.84, 0.87, 1.0)
 end
 

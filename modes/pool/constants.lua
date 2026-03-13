@@ -31,8 +31,16 @@ constants.TABLE_POS = Vector(1610, 23.91, 1192)
 constants.TABLE_ROT = orientations.n
 constants.BALL_HEIGHT = 1.2
 constants.CAMERA_FOV = 0.82
-constants.CAMERA_POS_LOCAL = Vector(6.1, 3.6, 0.0)
-constants.CAMERA_TARGET_LOCAL = Vector(1.1, 1.15, 0.0)
+constants.SPECTATOR_CAMERA_POS_LOCAL = Vector(6.3, 3.4, 0.0)
+constants.SPECTATOR_CAMERA_TARGET_LOCAL = Vector(1.1, 1.05, 0.0)
+constants.SEAT_CAMERA_POS_LOCAL = {
+	[1] = Vector(5.0, 2.5, -1.55),
+	[2] = Vector(5.0, 2.5, 1.55),
+}
+constants.SEAT_CAMERA_TARGET_LOCAL = {
+	[1] = Vector(1.45, 1.10, -0.10),
+	[2] = Vector(1.45, 1.10, 0.10),
+}
 
 constants.TABLE_MIN_X = -1.36
 constants.TABLE_MAX_X = 3.66
@@ -142,12 +150,14 @@ function constants.localToWorld(x, z)
 	return constants.TABLE_POS + (Vector(x, constants.BALL_HEIGHT, z) * constants.TABLE_ROT)
 end
 
-function constants.tableCameraPosition()
-	return constants.TABLE_POS + (constants.CAMERA_POS_LOCAL * constants.TABLE_ROT)
+function constants.tableCameraPosition(seat)
+	local localPos = constants.SEAT_CAMERA_POS_LOCAL[seat] or constants.SPECTATOR_CAMERA_POS_LOCAL
+	return constants.TABLE_POS + (localPos * constants.TABLE_ROT)
 end
 
-function constants.tableCameraTarget()
-	return constants.TABLE_POS + (constants.CAMERA_TARGET_LOCAL * constants.TABLE_ROT)
+function constants.tableCameraTarget(seat)
+	local localTarget = constants.SEAT_CAMERA_TARGET_LOCAL[seat] or constants.SPECTATOR_CAMERA_TARGET_LOCAL
+	return constants.TABLE_POS + (localTarget * constants.TABLE_ROT)
 end
 
 return constants
