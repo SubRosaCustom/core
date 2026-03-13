@@ -10,6 +10,10 @@ function state.newContext()
 		noticeLine = "Waiting for pool server state...",
 		lastSnapshotTick = -1,
 		localTicks = 0,
+		cameraCaptured = false,
+		cameraPos = nil,
+		cameraRot = nil,
+		cameraFov = nil,
 	}
 end
 
@@ -162,6 +166,53 @@ function state.getPhase(context)
 	end
 
 	return snapshot.phase
+end
+
+function state.isChatOpen()
+	local localPlayer = client and client.player or nil
+	return localPlayer ~= nil and tonumber(localPlayer.menuTab) == 2
+end
+
+function state.isInputBlocked()
+	return (client and tonumber(client.isPauseMenu) or 0) ~= 0
+		or (client and tonumber(client.menuState) or 0) ~= 0
+		or state.isChatOpen()
+end
+
+function state.shouldUseTableCamera(context)
+	return not state.isInputBlocked() and state.getLocalSeat(context) ~= nil and context.snapshot ~= nil
+end
+
+function state.captureCamera(context)
+	if context.cameraCaptured or not client or not client.camera then
+		return
+	end
+
+	context.cameraCaptured = true
+	context.cameraPos = client.camera.pos and client.camera.pos:clone() or nil
+	context.cameraRot = client.camera.rot and client.camera.rot:clone() or nil
+	context.cameraFov = client.camera.fov
+end
+
+function state.restoreCamera(context)
+	if not context.cameraCaptured or not client or not client.camera then
+		return
+	end
+
+	if context.cameraPos then
+		client.camera.pos:set(context.cameraPos)
+	end
+	if context.cameraRot then
+		client.camera.rot:set(context.cameraRot)
+	end
+	if context.cameraFov then
+		client.camera.fov = context.cameraFov
+	end
+
+	context.cameraCaptured = false
+	context.cameraPos = nil
+	context.cameraRot = nil
+	context.cameraFov = nil
 end
 
 return state

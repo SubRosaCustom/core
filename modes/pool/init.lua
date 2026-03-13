@@ -66,6 +66,7 @@ plugin:addDisableHandler(function()
 
 	local context = runtime.activeContext
 	if context then
+		state.restoreCamera(context)
 		context.loadedModelIds = {}
 	end
 

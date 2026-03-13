@@ -3,8 +3,29 @@ local constants = plugin:require("constants")
 
 local render = {}
 
+local function drawPanel(x, y, w, h, r, g, b, a)
+	renderer:drawRectangle2D(x, y, w, h, r, g, b, a)
+end
+
+local function drawLabel(text, x, y, scale, r, g, b, a)
+	renderer:drawText(text, x, y, scale, r, g, b, a, 0x20)
+end
+
+local function applyTableCamera(context, state)
+	if not state.shouldUseTableCamera(context) or not client or not client.camera then
+		state.restoreCamera(context)
+		return
+	end
+
+	state.captureCamera(context)
+	client.camera.pos:set(constants.tableCameraPosition())
+	client.camera.rot:set(getRotMatrixLookingAt(constants.tableCameraPosition(), constants.tableCameraTarget()))
+	client.camera.fov = constants.CAMERA_FOV
+end
+
 function render.renderFrame(context, state)
 	state.ensureModelsLoaded(context)
+	applyTableCamera(context, state)
 
 	local snapshot = context.snapshot
 	if type(snapshot) ~= "table" then
@@ -47,92 +68,107 @@ function render.renderFrame(context, state)
 end
 
 function render.drawUI(context, state)
-	local x = plugin.config.overlayX
-	local y = plugin.config.overlayY
-	local scale = plugin.config.textScale
-
 	local snapshot = context.snapshot
-	local heading = "Pool 8-Ball"
-	local turnText = "Turn: -"
-	local assignText = "P1: -  P2: -"
-	local shotText = "Aim -  Power -"
+	local scale = plugin.config.textScale
+	local margin = constants.HUD_MARGIN
+	local width = constants.SCREEN_WIDTH
+	local height = constants.SCREEN_HEIGHT
+	local rightWidth = constants.HUD_RIGHT_WIDTH
+	local topHeight = constants.HUD_TOP_HEIGHT
+	local bottomHeight = constants.HUD_BOTTOM_HEIGHT
+	local contentLeft = margin
+	local contentTop = margin
+	local contentRight = width - margin
+	local contentBottom = height - margin
+	local leftWidth = width - (margin * 3) - rightWidth
+
+	local phaseText = "WAITING"
+	local turnText = "Player -"
+	local seatText = "Spectator"
 	local statusText = context.noticeLine
+	local scoreText = "0  -  0"
+	local groupsText = "Open Table"
+	local shotText = "Aim --  Power --"
 	local handText = " "
-	local seatText = "Seat: Spectator"
-	local scoreText = "Score: P1 0 - 0 P2"
-	local phaseText = "Phase: Waiting"
-	local controlsText = "J join | L leave | Enter ready | Arrows aim/power | Space shoot | R rerack | WASD move cue ball"
+	local controlsText = "J Join  L Leave  Enter Ready  Arrows Aim/Power  Space Shoot  R Rerack  WASD Cue"
+	local practiceText = " "
+	local seatOneName = "Open"
+	local seatTwoName = "Open"
+	local seatOneReady = "Idle"
+	local seatTwoReady = "Idle"
 
 	if type(snapshot) == "table" then
-		if snapshot.winner then
-			turnText = "Winner: Player " .. tostring(snapshot.winner)
-		else
-			turnText = "Turn: Player " .. tostring(snapshot.turnPlayer or "?")
-		end
-
-		assignText = "P1: "
-			.. constants.formatGroup(snapshot.assignments and snapshot.assignments[1] or nil)
-			.. "  P2: "
-			.. constants.formatGroup(snapshot.assignments and snapshot.assignments[2] or nil)
-
+		local seatOne = state.getSeatInfo(context, 1)
+		local seatTwo = state.getSeatInfo(context, 2)
+		local localSeat = state.getLocalSeat(context)
 		local cueAim = tonumber(snapshot.cueAim) or 0
 		local shotPower = tonumber(snapshot.shotPower) or 0
 		local aimDeg = (math.deg(cueAim) % 360 + 360) % 360
-		shotText = string.format("Aim %.1f  Power %.0f%%", aimDeg, shotPower * 100)
-		statusText = tostring(snapshot.statusLine or context.noticeLine)
-		handText = snapshot.ballInHand and "Ball in hand: use WASD to place cue ball." or " "
-
-		local localSeat = state.getLocalSeat(context)
-		if localSeat then
-			seatText = "Seat: Player "
-				.. tostring(localSeat)
-				.. " ("
-				.. state.getSeatDisplay(snapshot, localSeat)
-				.. ")"
-		else
-			seatText = "Seat: Spectator"
-		end
-
-		local seatOne = state.getSeatInfo(context, 1)
-		local seatTwo = state.getSeatInfo(context, 2)
 		local scoreOne = seatOne and tonumber(seatOne.wins) or 0
 		local scoreTwo = seatTwo and tonumber(seatTwo.wins) or 0
-		scoreText = string.format("Score: P1 %d - %d P2", scoreOne or 0, scoreTwo or 0)
 
-		local function readyText(info)
-			if not info then
-				return "-"
-			end
-			return info.ready and "Ready" or "Not Ready"
-		end
-
-		phaseText = "Phase: "
-			.. tostring(snapshot.phase or "waiting")
-			.. " | P1 "
-			.. readyText(seatOne)
-			.. " | P2 "
-			.. readyText(seatTwo)
+		phaseText = string.upper(tostring(snapshot.phase or "waiting"))
+		turnText = snapshot.winner and ("Winner: Player " .. tostring(snapshot.winner))
+			or ("Turn: Player " .. tostring(snapshot.turnPlayer or "?"))
+		seatText = localSeat and ("Seat: Player " .. tostring(localSeat)) or "Seat: Spectator"
+		statusText = tostring(snapshot.statusLine or context.noticeLine)
+		scoreText = string.format("%d  -  %d", scoreOne or 0, scoreTwo or 0)
+		groupsText = string.format(
+			"P1 %s  |  P2 %s",
+			constants.formatGroup(snapshot.assignments and snapshot.assignments[1] or nil),
+			constants.formatGroup(snapshot.assignments and snapshot.assignments[2] or nil)
+		)
+		shotText = string.format("Aim %03.0f  |  Power %02.0f%%", aimDeg, shotPower * 100)
+		handText = snapshot.ballInHand and "Ball in hand: use WASD to move the cue ball." or " "
+		practiceText = snapshot.practiceMode and "Practice Mode Active" or " "
+		seatOneName = seatOne and seatOne.playerName or "Open"
+		seatTwoName = seatTwo and seatTwo.playerName or "Open"
+		seatOneReady = seatOne and (seatOne.ready and "Ready" or "Idle") or "Open"
+		seatTwoReady = seatTwo and (seatTwo.ready and "Ready" or "Idle") or "Open"
 	end
 
-	renderer:drawText(heading, x, y, scale, 0.90, 0.95, 1.00, 1.00, 0x20)
-	y = y + scale
-	renderer:drawText(turnText, x, y, scale, 1.00, 1.00, 1.00, 1.00, 0x20)
-	y = y + scale
-	renderer:drawText(assignText, x, y, scale, 0.95, 0.95, 0.95, 1.00, 0x20)
-	y = y + scale
-	renderer:drawText(seatText, x, y, scale, 0.75, 0.95, 1.00, 1.00, 0x20)
-	y = y + scale
-	renderer:drawText(scoreText, x, y, scale, 0.90, 0.90, 0.70, 1.00, 0x20)
-	y = y + scale
-	renderer:drawText(phaseText, x, y, scale, 0.75, 0.95, 0.75, 1.00, 0x20)
-	y = y + scale
-	renderer:drawText(shotText, x, y, scale, 0.95, 0.95, 0.95, 1.00, 0x20)
-	y = y + scale
-	renderer:drawText(statusText, x, y, scale, 1.00, 0.85, 0.35, 1.00, 0x20)
-	y = y + scale
-	renderer:drawText(handText, x, y, scale, 0.75, 1.00, 0.75, 1.00, 0x20)
-	y = y + scale
-	renderer:drawText(controlsText, x, y, scale, 0.80, 0.80, 0.80, 1.00, 0x20)
+	drawPanel(contentLeft, contentTop, leftWidth, topHeight, 0.05, 0.12, 0.11, 0.78)
+	drawPanel(contentLeft, contentTop + topHeight + margin, leftWidth, contentBottom - contentTop - topHeight - bottomHeight - margin * 2, 0.04, 0.08, 0.08, 0.44)
+	drawPanel(contentLeft, contentBottom - bottomHeight, leftWidth, bottomHeight, 0.08, 0.12, 0.10, 0.78)
+	drawPanel(contentLeft + leftWidth + margin, contentTop, rightWidth, contentBottom - contentTop, 0.06, 0.07, 0.10, 0.82)
+
+	drawLabel("POOL", contentLeft + 18, contentTop + 18, 30, 0.88, 0.98, 0.94, 1.0)
+	drawLabel(phaseText, contentLeft + 18, contentTop + 48, 18, 0.66, 0.90, 0.77, 1.0)
+	drawLabel(turnText, contentLeft + 180, contentTop + 22, 18, 0.97, 0.97, 0.97, 1.0)
+	drawLabel(seatText, contentLeft + 180, contentTop + 48, 18, 0.78, 0.90, 1.0, 1.0)
+
+	local rightX = contentLeft + leftWidth + margin + 18
+	local y = contentTop + 18
+	drawLabel("Match", rightX, y, 22, 0.91, 0.95, 1.0, 1.0)
+	y = y + 34
+	drawLabel("Score", rightX, y, 16, 0.65, 0.78, 0.90, 1.0)
+	y = y + 22
+	drawLabel(scoreText, rightX, y, 28, 1.0, 0.95, 0.72, 1.0)
+	y = y + 44
+	drawLabel("Groups", rightX, y, 16, 0.65, 0.78, 0.90, 1.0)
+	y = y + 22
+	drawLabel(groupsText, rightX, y, 16, 0.94, 0.96, 0.98, 1.0)
+	y = y + 40
+	drawLabel("Seats", rightX, y, 16, 0.65, 0.78, 0.90, 1.0)
+	y = y + 24
+	drawLabel("P1  " .. seatOneName, rightX, y, 18, 0.97, 0.97, 0.97, 1.0)
+	drawLabel(seatOneReady, rightX + 210, y, 16, 0.66, 0.90, 0.77, 1.0)
+	y = y + 24
+	drawLabel("P2  " .. seatTwoName, rightX, y, 18, 0.97, 0.97, 0.97, 1.0)
+	drawLabel(seatTwoReady, rightX + 210, y, 16, 0.66, 0.90, 0.77, 1.0)
+	y = y + 42
+	drawLabel("Shot", rightX, y, 16, 0.65, 0.78, 0.90, 1.0)
+	y = y + 22
+	drawLabel(shotText, rightX, y, 17, 0.95, 0.95, 0.95, 1.0)
+	y = y + 30
+	drawLabel(statusText, rightX, y, 17, 1.0, 0.84, 0.38, 1.0)
+	y = y + 30
+	drawLabel(handText, rightX, y, 16, 0.74, 1.0, 0.79, 1.0)
+	y = y + 26
+	drawLabel(practiceText, rightX, y, 16, 0.76, 0.88, 1.0, 1.0)
+
+	drawLabel("Table View Locked", contentLeft + 18, contentBottom - bottomHeight + 18, 18, 0.74, 0.89, 1.0, 1.0)
+	drawLabel(controlsText, contentLeft + 18, contentBottom - bottomHeight + 44, 15, 0.82, 0.84, 0.87, 1.0)
 end
 
 return render
