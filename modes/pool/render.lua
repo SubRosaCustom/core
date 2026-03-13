@@ -161,6 +161,7 @@ end
 
 function render.updateCamera(context, state)
 	if not state.shouldUseTableCamera(context) or not client or not client.camera then
+		print("[pool] updateCamera skipped")
 		state.restoreCamera(context)
 		return
 	end
@@ -169,6 +170,16 @@ function render.updateCamera(context, state)
 	local seat = state.getLocalSeat(context)
 	local cameraPos = constants.tableCameraPosition(seat)
 	local cameraTarget = constants.tableCameraTarget(seat)
+	print(string.format(
+		"[pool] updateCamera seat=%s pos=(%.2f, %.2f, %.2f) target=(%.2f, %.2f, %.2f)",
+		tostring(seat),
+		cameraPos.x,
+		cameraPos.y,
+		cameraPos.z,
+		cameraTarget.x,
+		cameraTarget.y,
+		cameraTarget.z
+	))
 	client.camera.pos:set(cameraPos)
 	client.camera.rot:set(getRotMatrixLookingAt(cameraPos, cameraTarget))
 	client.camera.fov = constants.CAMERA_FOV
@@ -218,6 +229,7 @@ function render.renderFrame(context, state)
 end
 
 function render.draw3D(context, state)
+	print("[pool] draw3D debug overlay")
 	drawTableDebug(context, state)
 end
 
