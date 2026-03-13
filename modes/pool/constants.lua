@@ -70,13 +70,13 @@ constants.HUD_MODE_LABELS = {
 	hidden = "HUD: Hidden",
 }
 
-constants.TABLE_MIN_X = -1.36
-constants.TABLE_MAX_X = 3.66
+constants.TABLE_MIN_X = -2.76
+constants.TABLE_MAX_X = 2.26
 constants.TABLE_MIN_Z = -1.48
 constants.TABLE_MAX_Z = 1.48
 constants.TABLE_CENTER_X = (constants.TABLE_MIN_X + constants.TABLE_MAX_X) * 0.5
-constants.HEAD_STRING_X = 2.10
-constants.CUE_START_X = 2.51
+constants.HEAD_STRING_X = -1.20
+constants.CUE_START_X = -1.55
 constants.CUE_START_Z = 0.0
 
 constants.BALL_RADIUS = 0.10
@@ -134,7 +134,7 @@ end
 
 constants.rackOffsets = {}
 do
-	local rackApexX = 1.15
+	local rackApexX = -0.25
 	local rackSpacingX = 0.18
 	local rackSpacingZ = 0.2
 	local rackIndex = 1
