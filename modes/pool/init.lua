@@ -93,6 +93,14 @@ plugin:addHook("RenderFrame", function()
 
 	render.updateCamera(context, state)
 	render.renderFrame(context, state)
+end)
+
+plugin:addHook("PostRenderFrame", function()
+	local context = activeContext()
+	if not context then
+		return
+	end
+
 	render.drawDebug(context, state)
 end)
 

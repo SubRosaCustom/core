@@ -34,6 +34,7 @@ local disabledPluginsMap = {}
 ---@field addHook fun(self: Plugin, eventName: "Logic", func: hooks.Logic, options?: PluginHookOptions)
 ---@field addHook fun(self: Plugin, eventName: "DrawUI", func: hooks.DrawUI, options?: PluginHookOptions)
 ---@field addHook fun(self: Plugin, eventName: "RenderFrame", func: hooks.RenderFrame, options?: PluginHookOptions)
+---@field addHook fun(self: Plugin, eventName: "PostRenderFrame", func: function, options?: PluginHookOptions)
 ---@field addHook fun(self: Plugin, eventName: "DrawHuman", func: hooks.DrawHuman, options?: PluginHookOptions)
 ---@field addHook fun(self: Plugin, eventName: "DrawHumanLabels", func: hooks.DrawHumanLabels, options?: PluginHookOptions)
 ---@field addHook fun(self: Plugin, eventName: "DrawMapMenu", func: hooks.DrawMapMenu, options?: PluginHookOptions)

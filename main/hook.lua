@@ -21,6 +21,7 @@
 ---@field add fun(eventName: "Logic", name: string, func: hooks.Logic)
 ---@field add fun(eventName: "DrawUI", name: string, func: hooks.DrawUI)
 ---@field add fun(eventName: "RenderFrame", name: string, func: hooks.RenderFrame)
+---@field add fun(eventName: "PostRenderFrame", name: string, func: function)
 ---@field add fun(eventName: "DrawMapMarkers", name: string, func: hooks.DrawMapMarkers)
 ---@field add fun(eventName: "DrawHuman", name: string, func: hooks.DrawHuman)
 ---@field add fun(eventName: "DrawHumanLabels", name: string, func: hooks.DrawHumanLabels)
@@ -53,6 +54,7 @@ local _knownEngineEvents = {
 	Logic = true,
 	DrawHuman = true,
 	RenderFrame = true,
+	PostRenderFrame = true,
 	DrawUI = true,
 	WriteClientData = true,
 	DrawMapMenu = true,
