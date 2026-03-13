@@ -307,7 +307,7 @@ function render.drawUI(context, state)
 	drawPanel(contentLeft, contentBottom - bottomHeight, leftWidth, bottomHeight, 0.08, 0.12, 0.10, 0.78)
 	drawPanel(contentLeft + leftWidth + margin, contentTop, rightWidth, contentBottom - contentTop, 0.06, 0.07, 0.10, 0.82)
 
-	drawLabel("POOL", contentLeft + 18, contentTop + 18, 30, 0.88, 0.98, 0.94, 1.0)
+	drawLabel("POOL 8-BALL (BETA)", contentLeft + 18, contentTop + 18, 30, 0.88, 0.98, 0.94, 1.0)
 	drawLabel(phaseText, contentLeft + 18, contentTop + 48, 18, 0.66, 0.90, 0.77, 1.0)
 	drawLabel(turnText, contentLeft + 180, contentTop + 22, 18, 0.97, 0.97, 0.97, 1.0)
 	drawLabel(seatText, contentLeft + 180, contentTop + 48, 18, 0.78, 0.90, 1.0, 1.0)
