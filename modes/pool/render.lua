@@ -39,6 +39,18 @@ function render.renderFrame(context, state)
 		renderer:renderObject(tableModel, constants.TABLE_POS, constants.TABLE_ROT)
 	end
 
+	for i = 1, #constants.debugCornerMarkers do
+		local marker = constants.debugCornerMarkers[i]
+		local markerModelId = context.loadedModelIds[marker.modelName]
+		if type(markerModelId) == "number" then
+			renderer:renderObject(
+				markerModelId,
+				constants.TABLE_POS + (Vector(marker.x, constants.DEBUG_MARKER_HEIGHT, marker.z) * constants.TABLE_ROT),
+				constants.TABLE_ROT
+			)
+		end
+	end
+
 	local balls = snapshot.balls
 	if type(balls) == "table" then
 		for i = 1, #balls do

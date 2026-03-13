@@ -54,6 +54,14 @@ constants.CUE_START_Z = 0.0
 constants.BALL_RADIUS = 0.10
 constants.BALL_DIAMETER = constants.BALL_RADIUS * 2.0
 constants.POCKET_RADIUS = 0.24
+constants.DEBUG_MARKER_HEIGHT = 1.38
+
+constants.debugCornerMarkers = {
+	{ x = constants.TABLE_MIN_X, z = constants.TABLE_MIN_Z, modelName = "ball1" },
+	{ x = constants.TABLE_MIN_X, z = constants.TABLE_MAX_Z, modelName = "ball2" },
+	{ x = constants.TABLE_MAX_X, z = constants.TABLE_MIN_Z, modelName = "ball3" },
+	{ x = constants.TABLE_MAX_X, z = constants.TABLE_MAX_Z, modelName = "ball4" },
+}
 
 constants.TABLE_FRICTION = 0.985
 constants.RAIL_BOUNCE = 0.96
