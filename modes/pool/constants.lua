@@ -16,6 +16,8 @@ constants.defaultConfig = {
 	moveCueRightScancode = 7, -- D
 	moveCueUpScancode = 26, -- W
 	moveCueDownScancode = 22, -- S
+	cameraModeScancode = 6, -- C
+	hudModeScancode = 25, -- V
 	textScale = 16.0,
 }
 
@@ -40,6 +42,32 @@ constants.SEAT_CAMERA_POS_LOCAL = {
 constants.SEAT_CAMERA_TARGET_LOCAL = {
 	[1] = Vector(1.55, 1.10, -0.08),
 	[2] = Vector(1.55, 1.10, 0.08),
+}
+constants.CAMERA_MODE_ORDER = {
+	"off",
+	"seat",
+	"wide",
+	"topdown",
+	"orbit",
+	"follow",
+}
+constants.CAMERA_MODE_LABELS = {
+	off = "Camera: Off",
+	seat = "Camera: Seat",
+	wide = "Camera: Wide",
+	topdown = "Camera: Top Down",
+	orbit = "Camera: Orbit",
+	follow = "Camera: Follow",
+}
+constants.HUD_MODE_ORDER = {
+	"full",
+	"compact",
+	"hidden",
+}
+constants.HUD_MODE_LABELS = {
+	full = "HUD: Full",
+	compact = "HUD: Compact",
+	hidden = "HUD: Hidden",
 }
 
 constants.TABLE_MIN_X = -1.36
@@ -85,6 +113,8 @@ constants.BINDS = {
 	moveCueRight = "pool_move_cue_right",
 	moveCueUp = "pool_move_cue_up",
 	moveCueDown = "pool_move_cue_down",
+	cameraMode = "pool_camera_mode",
+	hudMode = "pool_hud_mode",
 }
 
 constants.EVENTS = {
@@ -162,6 +192,21 @@ end
 function constants.tableCameraTarget(seat)
 	local localTarget = constants.SEAT_CAMERA_TARGET_LOCAL[seat] or constants.SPECTATOR_CAMERA_TARGET_LOCAL
 	return constants.TABLE_POS + (localTarget * constants.TABLE_ROT)
+end
+
+function constants.nextMode(order, current)
+	local count = #order
+	if count == 0 then
+		return current
+	end
+
+	for i = 1, count do
+		if order[i] == current then
+			return order[(i % count) + 1]
+		end
+	end
+
+	return order[1]
 end
 
 return constants

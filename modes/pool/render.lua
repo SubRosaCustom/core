@@ -161,25 +161,55 @@ end
 
 function render.updateCamera(context, state)
 	if not state.shouldUseTableCamera(context) or not client or not client.camera then
-		plugin:print("updateCamera skipped")
 		state.restoreCamera(context)
 		return
 	end
 
 	state.captureCamera(context)
 	local seat = state.getLocalSeat(context)
-	local cameraPos = constants.tableCameraPosition(seat)
-	local cameraTarget = constants.tableCameraTarget(seat)
-	plugin:print(string.format(
-		"updateCamera seat=%s pos=(%.2f, %.2f, %.2f) target=(%.2f, %.2f, %.2f)",
-		tostring(seat),
-		cameraPos.x,
-		cameraPos.y,
-		cameraPos.z,
-		cameraTarget.x,
-		cameraTarget.y,
-		cameraTarget.z
-	))
+	local snapshot = context.snapshot or {}
+	local mode = state.getCameraMode(context)
+	local cueBall = state.getCueBall(context)
+	local focusX = constants.TABLE_CENTER_X
+	local focusZ = 0.0
+
+	if cueBall and cueBall.active then
+		focusX = cueBall.x
+		focusZ = cueBall.z
+	end
+
+	local cameraPos
+	local cameraTarget
+	if mode == "wide" then
+		cameraPos = constants.tableCameraPosition(nil)
+		cameraTarget = constants.tableCameraTarget(nil)
+	elseif mode == "topdown" then
+		cameraTarget = constants.localToWorld(focusX, focusZ)
+		cameraPos = constants.TABLE_POS + (Vector(constants.TABLE_CENTER_X, 5.8, 0.0) * constants.TABLE_ROT)
+	elseif mode == "orbit" then
+		local orbitAngle = (context.localTicks % 720) * (math.pi / 360)
+		local orbitLocal = Vector(
+			constants.TABLE_CENTER_X + (math.cos(orbitAngle) * 3.2),
+			2.75,
+			math.sin(orbitAngle) * 2.25
+		)
+		cameraPos = constants.TABLE_POS + (orbitLocal * constants.TABLE_ROT)
+		cameraTarget = constants.localToWorld(constants.TABLE_CENTER_X, 0.0)
+	elseif mode == "follow" then
+		local cueAim = tonumber(snapshot.cueAim) or 0.0
+		local followDistance = 1.55
+		local localPos = Vector(
+			focusX - (math.cos(cueAim) * followDistance),
+			1.95,
+			focusZ - (math.sin(cueAim) * followDistance)
+		)
+		cameraPos = constants.TABLE_POS + (localPos * constants.TABLE_ROT)
+		cameraTarget = constants.localToWorld(focusX, focusZ)
+	else
+		cameraPos = constants.tableCameraPosition(seat)
+		cameraTarget = constants.tableCameraTarget(seat)
+	end
+
 	client.camera.pos:set(cameraPos)
 	client.camera.rot:set(getRotMatrixLookingAt(cameraPos, cameraTarget))
 	client.camera.fov = constants.CAMERA_FOV
@@ -228,14 +258,17 @@ function render.renderFrame(context, state)
 	end
 end
 
-function render.draw3D(context, state)
-	plugin:print("draw3D debug overlay")
+function render.drawDebug(context, state)
 	drawTableDebug(context, state)
 end
 
 function render.drawUI(context, state)
+	local hudMode = state.getHudMode(context)
+	if hudMode == "hidden" then
+		return
+	end
+
 	local snapshot = context.snapshot
-	local scale = plugin.config.textScale
 	local margin = constants.HUD_MARGIN
 	local width = constants.SCREEN_WIDTH
 	local height = constants.SCREEN_HEIGHT
@@ -262,7 +295,8 @@ function render.drawUI(context, state)
 	local seatTwoName = "Open"
 	local seatOneReady = "Idle"
 	local seatTwoReady = "Idle"
-	local cameraText = "Spectator Camera"
+	local cameraText = constants.CAMERA_MODE_LABELS[state.getCameraMode(context)] or "Camera"
+	local hudText = constants.HUD_MODE_LABELS[hudMode] or "HUD"
 	local staleText = " "
 
 	if type(snapshot) == "table" then
@@ -293,13 +327,24 @@ function render.drawUI(context, state)
 		seatTwoName = seatTwo and seatTwo.playerName or "Open"
 		seatOneReady = seatOne and (seatOne.ready and "Ready" or "Idle") or "Open"
 		seatTwoReady = seatTwo and (seatTwo.ready and "Ready" or "Idle") or "Open"
-		cameraText = localSeat and ("Player " .. tostring(localSeat) .. " Camera") or "Spectator Camera"
 		if context.lastSnapshotTick >= 0 then
 			local age = context.localTicks - context.lastSnapshotTick
 			if age > math.floor(constants.RESUBSCRIBE_TICKS * 0.5) then
 				staleText = "State stale: waiting for fresh server snapshot."
 			end
 		end
+	end
+
+	if hudMode == "compact" then
+		local compactWidth = width - (margin * 2)
+		local compactHeight = 78
+		local compactY = height - margin - compactHeight
+		drawPanel(margin, compactY, compactWidth, compactHeight, 0.05, 0.10, 0.10, 0.76)
+		drawLabel("POOL 8-BALL (BETA)", margin + 16, compactY + 12, 24, 0.88, 0.98, 0.94, 1.0)
+		drawLabel(phaseText .. "  |  " .. turnText, margin + 16, compactY + 40, 16, 0.95, 0.95, 0.95, 1.0)
+		drawLabel(seatText .. "  |  " .. cameraText .. "  |  " .. hudText, margin + 330, compactY + 12, 16, 0.72, 0.89, 1.0, 1.0)
+		drawLabel(statusText, margin + 330, compactY + 40, 16, 0.80, 0.92, 0.84, 1.0)
+		return
 	end
 
 	drawPanel(contentLeft, contentTop, leftWidth, topHeight, 0.05, 0.12, 0.11, 0.78)
@@ -345,7 +390,15 @@ function render.drawUI(context, state)
 	drawLabel(staleText, rightX, y, 15, 1.0, 0.70, 0.45, 1.0)
 
 	drawLabel(cameraText, contentLeft + 18, contentBottom - bottomHeight + 18, 18, 0.74, 0.89, 1.0, 1.0)
-	drawLabel(controlsText, contentLeft + 18, contentBottom - bottomHeight + 44, 15, 0.82, 0.84, 0.87, 1.0)
+	drawLabel(hudText, contentLeft + 238, contentBottom - bottomHeight + 18, 18, 0.74, 0.89, 1.0, 1.0)
+	drawLabel("J Join  L Leave  Enter Ready  Arrows Aim/Power  Space Shoot  R Rerack  WASD Cue  C Camera  V HUD",
+		contentLeft + 18,
+		contentBottom - bottomHeight + 44,
+		15,
+		0.82,
+		0.84,
+		0.87,
+		1.0)
 end
 
 return render

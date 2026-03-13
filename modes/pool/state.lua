@@ -14,6 +14,8 @@ function state.newContext()
 		cameraPos = nil,
 		cameraRot = nil,
 		cameraFov = nil,
+		cameraMode = constants.CAMERA_MODE_ORDER[2],
+		hudMode = constants.HUD_MODE_ORDER[1],
 	}
 end
 
@@ -168,6 +170,24 @@ function state.getPhase(context)
 	return snapshot.phase
 end
 
+function state.getCameraMode(context)
+	return context.cameraMode or constants.CAMERA_MODE_ORDER[1]
+end
+
+function state.getHudMode(context)
+	return context.hudMode or constants.HUD_MODE_ORDER[1]
+end
+
+function state.cycleCameraMode(context)
+	context.cameraMode = constants.nextMode(constants.CAMERA_MODE_ORDER, state.getCameraMode(context))
+	context.noticeLine = constants.CAMERA_MODE_LABELS[context.cameraMode] or "Camera updated."
+end
+
+function state.cycleHudMode(context)
+	context.hudMode = constants.nextMode(constants.HUD_MODE_ORDER, state.getHudMode(context))
+	context.noticeLine = constants.HUD_MODE_LABELS[context.hudMode] or "HUD updated."
+end
+
 function state.isChatOpen()
 	local localPlayer = client and client.player or nil
 	return localPlayer ~= nil and tonumber(localPlayer.menuTab) == 2
@@ -180,7 +200,10 @@ function state.isInputBlocked()
 end
 
 function state.shouldUseTableCamera(context)
-	return not state.isInputBlocked() and state.getLocalSeat(context) ~= nil and context.snapshot ~= nil
+	return not state.isInputBlocked()
+		and state.getCameraMode(context) ~= "off"
+		and state.getLocalSeat(context) ~= nil
+		and context.snapshot ~= nil
 end
 
 function state.captureCamera(context)

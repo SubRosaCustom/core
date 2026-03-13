@@ -116,6 +116,18 @@ function poolInput.bind(context, state)
 			sendStepCommand(context, state, "ready")
 		end
 	end, true, 5)
+
+	input:bind(binds.cameraMode, plugin.config.cameraModeScancode, function(_, toggled)
+		if toggled then
+			state.cycleCameraMode(context)
+		end
+	end, true, 5)
+
+	input:bind(binds.hudMode, plugin.config.hudModeScancode, function(_, toggled)
+		if toggled then
+			state.cycleHudMode(context)
+		end
+	end, true, 5)
 end
 
 function poolInput.unbind()
