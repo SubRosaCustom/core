@@ -104,6 +104,15 @@ plugin:addHook("PostRenderFrame", function()
 	render.drawDebug(context, state)
 end)
 
+plugin:addHook("Draw3D", function()
+	local context = activeContext()
+	if not context then
+		return
+	end
+
+	render.drawDebug(context, state)
+end)
+
 plugin:addHook("DrawUI", function()
 	local context = activeContext()
 	if not context then
