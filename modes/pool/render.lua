@@ -215,7 +215,9 @@ function render.renderFrame(context, state)
 			renderer:renderObject(cueModelId, constants.localToWorld(cueX, cueZ), cueRot)
 		end
 	end
+end
 
+function render.draw3D(context, state)
 	drawTableDebug(context, state)
 end
 
