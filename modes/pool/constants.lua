@@ -21,7 +21,7 @@ constants.defaultConfig = {
 	textScale = 16.0,
 }
 
-constants.TABLE_POS = Vector(1610, 24.71, 1192)
+constants.TABLE_POS = Vector(1610, 24.21, 1192)
 constants.TABLE_ROT = orientations.n
 constants.BALL_HEIGHT = 1.2
 
