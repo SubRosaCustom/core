@@ -40,8 +40,8 @@ local function setStatus(text, r, g, b, a)
 	statusColor[4] = a or statusColor[4]
 end
 
-local function emit(name, payload)
-	local ok = emitServerEvent(name, payload)
+local function emit(name, ...)
+	local ok = emitServerEvent(name, ...)
 	if ok then
 		pushLine("emitServerEvent OK: " .. name)
 	else
@@ -49,23 +49,20 @@ local function emit(name, payload)
 	end
 end
 
-onServerEvent("srcc.showcase.welcome", function(data)
-	setStatus("> WELCOME from server: " .. tostring(data and data.message or "nil"), 0.2, 0.9, 1.0, 1.0)
+onServerEvent("srcc.showcase.welcome", function(message, serverTick)
+	setStatus("> WELCOME from server: " .. tostring(message) .. " @" .. tostring(serverTick), 0.2, 0.9, 1.0, 1.0)
 end)
 
-onServerEvent("srcc.showcase.pong", function(data)
-	local serverTick = data and data.serverTick or "?"
-	local echoedReason = data and data.reason or "?"
-	setStatus("> PONG serverTick=" .. tostring(serverTick) .. " reason=" .. tostring(echoedReason), 0.3, 1.0, 0.3, 1.0)
+onServerEvent("srcc.showcase.pong", function(serverTick, reason)
+	setStatus("> PONG serverTick=" .. tostring(serverTick) .. " reason=" .. tostring(reason), 0.3, 1.0, 0.3, 1.0)
 end)
 
-onServerEvent("srcc.showcase.state", function(data)
-	local online = data and data.connectedClients or "?"
-	setStatus("> STATE connectedClients=" .. tostring(online), 1.0, 0.85, 0.35, 1.0)
+onServerEvent("srcc.showcase.state", function(serverTick, connectedClients)
+	setStatus("> STATE tick=" .. tostring(serverTick) .. " connectedClients=" .. tostring(connectedClients), 1.0, 0.85, 0.35, 1.0)
 end)
 
-onServerEvent("srcc.showcase.notice", function(data)
-	setStatus("> NOTICE: " .. tostring(data and data.text or "nil"), 1.0, 1.0, 0.35, 1.0)
+onServerEvent("srcc.showcase.notice", function(text, serverTick)
+	setStatus("> NOTICE: " .. tostring(text) .. " @" .. tostring(serverTick), 1.0, 1.0, 0.35, 1.0)
 end)
 
 plugin:addEnableHandler(function()
@@ -82,18 +79,13 @@ plugin:addEnableHandler(function()
 
 	input:bind(bindPingServer, plugin.config.pingServerScancode, function(_, toggled)
 		if toggled then
-			emit("srcc.showcase.ping", {
-				reason = "keybind_ping",
-				localTick = ticks,
-			})
+			emit("srcc.showcase.ping", "keybind_ping", ticks)
 		end
 	end, true, 5)
 
 	input:bind(bindRequestState, plugin.config.requestStateScancode, function(_, toggled)
 		if toggled then
-			emit("srcc.showcase.request_state", {
-				requestedAtTick = ticks,
-			})
+			emit("srcc.showcase.request_state", ticks)
 		end
 	end, true, 5)
 
@@ -121,10 +113,7 @@ plugin:addEnableHandler(function()
 	pushLine("SRCC Showcase enabled")
 	pushLine("F6 toggle overlay | F7 ping server | F8 request state")
 
-	emit("srcc.showcase.hello", {
-		clientAddress = client and client.serverAddress or "unknown",
-		clientPort = client and client.serverPort or 0,
-	})
+	emit("srcc.showcase.hello", client and client.serverAddress or "unknown", client and client.serverPort or 0)
 end)
 
 plugin:addDisableHandler(function()

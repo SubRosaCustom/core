@@ -11,6 +11,30 @@ local function drawLabel(text, x, y, scale, r, g, b, a)
 	renderer:drawText(text, x, y, scale, r, g, b, a, 0x20)
 end
 
+local function clamp01(value)
+	if value <= 0 then
+		return 0
+	end
+	if value >= 1 then
+		return 1
+	end
+	return value
+end
+
+local function easeOutCubic(value)
+	local t = 1 - clamp01(value)
+	return 1 - (t * t * t)
+end
+
+local function easeInCubic(value)
+	local t = clamp01(value)
+	return t * t * t
+end
+
+local function lerp(a, b, t)
+	return a + ((b - a) * t)
+end
+
 local function worldDebugPoint(x, z, y)
 	return constants.TABLE_POS + (Vector(x, y or constants.DEBUG_LINE_HEIGHT, z) * constants.TABLE_ROT)
 end
@@ -41,6 +65,79 @@ local function drawCross(x, z, size, y, r, g, b, a)
 	}, r, g, b, a)
 end
 
+local function drawVerticalMarker(x, z, centerY, size, r, g, b, a)
+	drawLineStrip({
+		worldDebugPoint(x, z, centerY - size),
+		worldDebugPoint(x, z, centerY + size),
+	}, r, g, b, a)
+end
+
+local function drawCircleXZ(x, y, z, radius, segments, r, g, b, a)
+	local points = {}
+	for i = 0, segments do
+		local angle = (i / segments) * (math.pi * 2)
+		points[#points + 1] = worldDebugPoint(
+			x + (math.cos(angle) * radius),
+			z + (math.sin(angle) * radius),
+			y
+		)
+	end
+	drawLineStrip(points, r, g, b, a)
+end
+
+local function drawCircleXY(x, y, z, radius, segments, r, g, b, a)
+	local points = {}
+	for i = 0, segments do
+		local angle = (i / segments) * (math.pi * 2)
+		points[#points + 1] = worldDebugPoint(
+			x + (math.cos(angle) * radius),
+			z,
+			y + (math.sin(angle) * radius)
+		)
+	end
+	drawLineStrip(points, r, g, b, a)
+end
+
+local function drawCircleYZ(x, y, z, radius, segments, r, g, b, a)
+	local points = {}
+	for i = 0, segments do
+		local angle = (i / segments) * (math.pi * 2)
+		points[#points + 1] = worldDebugPoint(
+			x,
+			z + (math.cos(angle) * radius),
+			y + (math.sin(angle) * radius)
+		)
+	end
+	drawLineStrip(points, r, g, b, a)
+end
+
+local function drawPocketSphere(pocket, r, g, b, a)
+	local radius = constants.POCKET_SPHERE_RADIUS
+	local segments = 18
+	drawCircleXZ(pocket.x, pocket.y, pocket.z, radius, segments, r, g, b, a)
+	drawCircleXY(pocket.x, pocket.y, pocket.z, radius, segments, r, g, b, a * 0.9)
+	drawCircleYZ(pocket.x, pocket.y, pocket.z, radius, segments, r, g, b, a * 0.9)
+	drawCross(pocket.x, pocket.z, 0.08, pocket.y, 1.0, 0.40, 0.40, 0.95)
+	drawVerticalMarker(pocket.x, pocket.z, pocket.y, 0.08, 1.0, 0.40, 0.40, 0.95)
+end
+
+local function animationProgress(context, animation)
+	if not animation then
+		return 1
+	end
+
+	local span = math.max(1, (animation.endTick or 0) - (animation.startTick or 0))
+	return clamp01((context.localTicks - (animation.startTick or 0)) / span)
+end
+
+local function renderBallModel(modelId, x, z, y)
+	if type(modelId) ~= "number" then
+		return
+	end
+
+	renderer:renderObject(modelId, constants.localToWorld(x, z, y), constants.TABLE_ROT)
+end
+
 local function drawArrow(x, z, dirX, dirZ, length, headSize, y, r, g, b, a)
 	local endX = x + (dirX * length)
 	local endZ = z + (dirZ * length)
@@ -61,7 +158,7 @@ local function drawArrow(x, z, dirX, dirZ, length, headSize, y, r, g, b, a)
 end
 
 local function drawTableDebug(context, state)
-	local snapshot = context.snapshot
+	local snapshot = state.getRenderSnapshot(context)
 	if type(snapshot) ~= "table" then
 		return
 	end
@@ -125,18 +222,7 @@ local function drawTableDebug(context, state)
 
 	for i = 1, #constants.pocketCenters do
 		local pocket = constants.pocketCenters[i]
-		renderer:drawDebugSolidBox3D(
-			constants.localToWorld(pocket.x, pocket.z),
-			constants.TABLE_ROT,
-			constants.POCKET_RADIUS,
-			constants.DEBUG_ZONE_THICKNESS,
-			constants.POCKET_RADIUS,
-			0.98,
-			0.26,
-			0.26,
-			0.22
-		)
-		drawCross(pocket.x, pocket.z, 0.12, constants.DEBUG_LINE_HEIGHT + 0.03, 1.0, 0.40, 0.40, 0.95)
+		drawPocketSphere(pocket, 0.98, 0.26, 0.26, 0.72)
 	end
 
 	local balls = snapshot.balls
@@ -144,6 +230,7 @@ local function drawTableDebug(context, state)
 		for i = 1, #balls do
 			local ball = balls[i]
 			if ball and ball.active then
+				local collisionY = constants.BALL_HEIGHT + 0.01
 				local colorR = 0.92
 				local colorG = 0.92
 				local colorB = 0.92
@@ -161,7 +248,11 @@ local function drawTableDebug(context, state)
 					colorB = 0.22
 				end
 
-				drawCross(ball.x, ball.z, ball.id == 0 and 0.10 or 0.06, constants.DEBUG_LINE_HEIGHT + 0.02, colorR, colorG, colorB, 0.88)
+				-- Ball collision shape lives on the ball plane; table/aim debug stays higher.
+				drawCircleXZ(ball.x, collisionY, ball.z, constants.BALL_RADIUS, 18, colorR, colorG, colorB, 0.90)
+				drawCircleXY(ball.x, collisionY, ball.z, constants.BALL_RADIUS, 14, colorR, colorG, colorB, 0.68)
+				drawCircleYZ(ball.x, collisionY, ball.z, constants.BALL_RADIUS, 14, colorR, colorG, colorB, 0.68)
+				drawCross(ball.x, ball.z, ball.id == 0 and 0.06 or 0.05, collisionY + 0.015, colorR, colorG, colorB, 0.92)
 			end
 		end
 	end
@@ -194,7 +285,7 @@ local function drawTableDebug(context, state)
 		)
 	end
 
-	local cueBall = state.getCueBall(context)
+	local cueBall = state.getCueBall(context, snapshot)
 	if not cueBall or not cueBall.active or snapshot.moving == true or snapshot.winner ~= nil then
 		if cueBall and cueBall.active then
 			drawCross(cueBall.x, cueBall.z, 0.10, constants.DEBUG_LINE_HEIGHT + 0.02, 1.0, 1.0, 1.0, 0.90)
@@ -283,10 +374,8 @@ function render.updateCamera(context, state)
 	end
 
 	state.captureCamera(context)
-	local seat = state.getLocalSeat(context)
-	local snapshot = context.snapshot or {}
-	local mode = state.getCameraMode(context)
-	local cueBall = state.getCueBall(context)
+	local snapshot = state.getRenderSnapshot(context) or context.snapshot or {}
+	local cueBall = state.getCueBall(context, snapshot)
 	local focusX = constants.TABLE_CENTER_X
 	local focusZ = 0.0
 
@@ -295,37 +384,15 @@ function render.updateCamera(context, state)
 		focusZ = cueBall.z
 	end
 
-	local cameraPos
-	local cameraTarget
-	if mode == "wide" then
-		cameraPos = constants.tableCameraPosition(nil)
-		cameraTarget = constants.tableCameraTarget(nil)
-	elseif mode == "topdown" then
-		cameraTarget = constants.localToWorld(focusX, focusZ)
-		cameraPos = constants.TABLE_POS + (Vector(constants.TABLE_CENTER_X, 5.8, 0.0) * constants.TABLE_ROT)
-	elseif mode == "orbit" then
-		local orbitAngle = (context.localTicks % 720) * (math.pi / 360)
-		local orbitLocal = Vector(
-			constants.TABLE_CENTER_X + (math.cos(orbitAngle) * 3.2),
-			2.75,
-			math.sin(orbitAngle) * 2.25
-		)
-		cameraPos = constants.TABLE_POS + (orbitLocal * constants.TABLE_ROT)
-		cameraTarget = constants.localToWorld(constants.TABLE_CENTER_X, 0.0)
-	elseif mode == "follow" then
-		local cueAim = tonumber(snapshot.cueAim) or 0.0
-		local followDistance = 1.55
-		local localPos = Vector(
-			focusX - (math.cos(cueAim) * followDistance),
-			1.95,
-			focusZ - (math.sin(cueAim) * followDistance)
-		)
-		cameraPos = constants.TABLE_POS + (localPos * constants.TABLE_ROT)
-		cameraTarget = constants.localToWorld(focusX, focusZ)
-	else
-		cameraPos = constants.tableCameraPosition(seat)
-		cameraTarget = constants.tableCameraTarget(seat)
-	end
+	local cueAim = tonumber(snapshot.cueAim) or 0.0
+	local followDistance = 1.55
+	local localPos = Vector(
+		focusX - (math.cos(cueAim) * followDistance),
+		1.95,
+		focusZ - (math.sin(cueAim) * followDistance)
+	)
+	local cameraPos = constants.TABLE_POS + (localPos * constants.TABLE_ROT)
+	local cameraTarget = constants.localToWorld(focusX, focusZ)
 
 	client.camera.pos:set(cameraPos)
 	client.camera.rot:set(getRotMatrixLookingAt(cameraPos, cameraTarget))
@@ -335,7 +402,7 @@ end
 function render.renderFrame(context, state)
 	state.ensureModelsLoaded(context)
 
-	local snapshot = context.snapshot
+	local snapshot = state.getRenderSnapshot(context)
 	if type(snapshot) ~= "table" then
 		return
 	end
@@ -350,17 +417,33 @@ function render.renderFrame(context, state)
 		for i = 1, #balls do
 			local ball = balls[i]
 			if ball and ball.active then
-				local modelId = context.loadedModelIds[ball.modelName]
-				if type(modelId) == "number" then
-					renderer:renderObject(modelId, constants.localToWorld(ball.x, ball.z), constants.TABLE_ROT)
+				local animation = state.getBallAnimation(context, ball.id)
+				local y = constants.BALL_HEIGHT
+				if animation and animation.kind == "spawn" then
+					local progress = animationProgress(context, animation)
+					y = y + ((1 - easeOutCubic(progress)) * constants.BALL_PLACE_HEIGHT)
 				end
+
+				renderBallModel(context.loadedModelIds[ball.modelName], ball.x, ball.z, y)
 			end
+		end
+	end
+
+	local animations = state.getBallAnimations(context)
+	for _, animation in pairs(animations) do
+		if animation.kind == "despawn" then
+			local progress = animationProgress(context, animation)
+			local eased = easeInCubic(progress)
+			local x = lerp(animation.x, animation.targetX or animation.x, eased)
+			local z = lerp(animation.z, animation.targetZ or animation.z, eased)
+			local y = constants.BALL_HEIGHT - (eased * constants.BALL_SINK_DEPTH)
+			renderBallModel(context.loadedModelIds[animation.modelName], x, z, y)
 		end
 	end
 
 	if snapshot.winner == nil and snapshot.moving ~= true then
 		local cueModelId = context.loadedModelIds.cue
-		local cueBall = state.getCueBall(context)
+		local cueBall = state.getCueBall(context, snapshot)
 		if type(cueModelId) == "number" and cueBall and cueBall.active then
 			local cueAim = tonumber(snapshot.cueAim) or math.pi
 			local shotPower = tonumber(snapshot.shotPower) or constants.MIN_SHOT_POWER
@@ -385,7 +468,7 @@ function render.drawUI(context, state)
 		return
 	end
 
-	local snapshot = context.snapshot
+	local snapshot = state.getRenderSnapshot(context) or context.snapshot
 	local margin = constants.HUD_MARGIN
 	local width = constants.SCREEN_WIDTH
 	local height = constants.SCREEN_HEIGHT
@@ -406,7 +489,7 @@ function render.drawUI(context, state)
 	local groupsText = "Open Table"
 	local shotText = "Aim --  Power --"
 	local handText = " "
-	local controlsText = "J Join  L Leave  Enter Ready  Arrows Aim/Power  Space Shoot  R Rerack  WASD Cue"
+	local controlsText = "J Join  L Leave  P Ready  Arrows Aim/Power  Space Shoot  R Rerack  WASD Cue"
 	local practiceText = " "
 	local seatOneName = "Open"
 	local seatTwoName = "Open"
@@ -417,9 +500,9 @@ function render.drawUI(context, state)
 	local staleText = " "
 
 	if type(snapshot) == "table" then
-		local seatOne = state.getSeatInfo(context, 1)
-		local seatTwo = state.getSeatInfo(context, 2)
-		local localSeat = state.getLocalSeat(context)
+		local seatOne = state.getSeatInfo(context, 1, snapshot)
+		local seatTwo = state.getSeatInfo(context, 2, snapshot)
+		local localSeat = state.getLocalSeat(context, snapshot)
 		local cueAim = tonumber(snapshot.cueAim) or 0
 		local shotPower = tonumber(snapshot.shotPower) or 0
 		local aimDeg = (math.deg(cueAim) % 360 + 360) % 360
@@ -508,7 +591,7 @@ function render.drawUI(context, state)
 
 	drawLabel(cameraText, contentLeft + 18, contentBottom - bottomHeight + 18, 18, 0.74, 0.89, 1.0, 1.0)
 	drawLabel(hudText, contentLeft + 238, contentBottom - bottomHeight + 18, 18, 0.74, 0.89, 1.0, 1.0)
-	drawLabel("J Join  L Leave  Enter Ready  Arrows Aim/Power  Space Shoot  R Rerack  WASD Cue  C Camera  V HUD",
+	drawLabel("J Join  L Leave  P Ready  Arrows Aim/Power  Space Shoot  R Rerack  WASD Cue  N HUD",
 		contentLeft + 18,
 		contentBottom - bottomHeight + 44,
 		15,

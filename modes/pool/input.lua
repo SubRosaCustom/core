@@ -7,89 +7,78 @@ local function onContinuousInput(keyState)
 	return keyState == input.state.begin or keyState == input.state.current
 end
 
-local function sendStepCommand(context, state, action, payload)
+local function sendStepCommand(context, state, action, ...)
 	if not context.snapshot then
 		state.requestState(context, false)
 		return
 	end
 
-	state.sendCommand(context, action, payload)
+	state.sendCommand(context, action, ...)
+end
+
+local function ensureSnapshot(context, state)
+	if context.snapshot then
+		return true
+	end
+
+	state.requestState(context, false)
+	return false
 end
 
 function poolInput.bind(context, state)
 	local binds = constants.BINDS
 
 	input:bind(binds.aimLeft, plugin.config.aimLeftScancode, function(_, keyState)
-		if onContinuousInput(keyState) then
-			sendStepCommand(context, state, "adjust_aim", {
-				delta = -constants.AIM_STEP,
-			})
+		if onContinuousInput(keyState) and ensureSnapshot(context, state) then
+			sendStepCommand(context, state, "adjust_aim", -constants.AIM_STEP)
 		end
 	end, false, 5)
 
 	input:bind(binds.aimRight, plugin.config.aimRightScancode, function(_, keyState)
-		if onContinuousInput(keyState) then
-			sendStepCommand(context, state, "adjust_aim", {
-				delta = constants.AIM_STEP,
-			})
+		if onContinuousInput(keyState) and ensureSnapshot(context, state) then
+			sendStepCommand(context, state, "adjust_aim", constants.AIM_STEP)
 		end
 	end, false, 5)
 
 	input:bind(binds.powerUp, plugin.config.powerUpScancode, function(_, keyState)
-		if onContinuousInput(keyState) then
-			sendStepCommand(context, state, "adjust_power", {
-				delta = constants.POWER_STEP,
-			})
+		if onContinuousInput(keyState) and ensureSnapshot(context, state) then
+			sendStepCommand(context, state, "adjust_power", constants.POWER_STEP)
 		end
 	end, false, 5)
 
 	input:bind(binds.powerDown, plugin.config.powerDownScancode, function(_, keyState)
-		if onContinuousInput(keyState) then
-			sendStepCommand(context, state, "adjust_power", {
-				delta = -constants.POWER_STEP,
-			})
+		if onContinuousInput(keyState) and ensureSnapshot(context, state) then
+			sendStepCommand(context, state, "adjust_power", -constants.POWER_STEP)
 		end
 	end, false, 5)
 
 	input:bind(binds.moveCueLeft, plugin.config.moveCueLeftScancode, function(_, keyState)
-		if onContinuousInput(keyState) then
-			sendStepCommand(context, state, "move_cue", {
-				dx = -constants.CUE_MOVE_STEP,
-				dz = 0,
-			})
+		if onContinuousInput(keyState) and ensureSnapshot(context, state) then
+			state.moveCueByCamera(context, 0, -1)
 		end
 	end, false, 5)
 
 	input:bind(binds.moveCueRight, plugin.config.moveCueRightScancode, function(_, keyState)
-		if onContinuousInput(keyState) then
-			sendStepCommand(context, state, "move_cue", {
-				dx = constants.CUE_MOVE_STEP,
-				dz = 0,
-			})
+		if onContinuousInput(keyState) and ensureSnapshot(context, state) then
+			state.moveCueByCamera(context, 0, 1)
 		end
 	end, false, 5)
 
 	input:bind(binds.moveCueUp, plugin.config.moveCueUpScancode, function(_, keyState)
-		if onContinuousInput(keyState) then
-			sendStepCommand(context, state, "move_cue", {
-				dx = 0,
-				dz = -constants.CUE_MOVE_STEP,
-			})
+		if onContinuousInput(keyState) and ensureSnapshot(context, state) then
+			state.moveCueByCamera(context, 1, 0)
 		end
 	end, false, 5)
 
 	input:bind(binds.moveCueDown, plugin.config.moveCueDownScancode, function(_, keyState)
-		if onContinuousInput(keyState) then
-			sendStepCommand(context, state, "move_cue", {
-				dx = 0,
-				dz = constants.CUE_MOVE_STEP,
-			})
+		if onContinuousInput(keyState) and ensureSnapshot(context, state) then
+			state.moveCueByCamera(context, -1, 0)
 		end
 	end, false, 5)
 
 	input:bind(binds.shoot, plugin.config.shootScancode, function(_, toggled)
-		if toggled then
-			sendStepCommand(context, state, "shoot")
+		if toggled and ensureSnapshot(context, state) then
+			state.shoot(context)
 		end
 	end, true, 5)
 
@@ -114,12 +103,6 @@ function poolInput.bind(context, state)
 	input:bind(binds.ready, plugin.config.readyScancode, function(_, toggled)
 		if toggled then
 			sendStepCommand(context, state, "ready")
-		end
-	end, true, 5)
-
-	input:bind(binds.cameraMode, plugin.config.cameraModeScancode, function(_, toggled)
-		if toggled then
-			state.cycleCameraMode(context)
 		end
 	end, true, 5)
 

@@ -34,17 +34,17 @@ local function installHandlers()
 
 	runtime.initialized = true
 
-	onServerEvent(constants.EVENTS.state, function(data)
+	onServerEvent(constants.EVENTS.state, function(snapshotBlob)
 		local context = activeContext()
 		if context then
-			state.applySnapshot(context, data)
+			state.applySnapshot(context, snapshotBlob)
 		end
 	end)
 
-	onServerEvent(constants.EVENTS.notice, function(data)
+	onServerEvent(constants.EVENTS.notice, function(text)
 		local context = activeContext()
 		if context then
-			state.applyNotice(context, data)
+			state.applyNotice(context, text)
 		end
 	end)
 end

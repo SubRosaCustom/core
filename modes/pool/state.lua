@@ -1,11 +1,25 @@
 local plugin = ...
 local constants = plugin:require("constants")
+local codec = plugin:require("codec")
 
 local state = {}
+
+local function ballModelNameForId(ballId)
+	if ballId == 0 then
+		return "cueball"
+	end
+
+	if type(ballId) == "number" and ballId > 0 then
+		return "ball" .. tostring(ballId)
+	end
+
+	return nil
+end
 
 function state.newContext()
 	return {
 		loadedModelIds = {},
+		ballAnimations = {},
 		snapshot = nil,
 		noticeLine = "Waiting for pool server state...",
 		lastSnapshotTick = -1,
@@ -14,9 +28,44 @@ function state.newContext()
 		cameraPos = nil,
 		cameraRot = nil,
 		cameraFov = nil,
-		cameraMode = constants.CAMERA_MODE_ORDER[2],
+		cameraMode = constants.CAMERA_MODE_ORDER[1],
 		hudMode = constants.HUD_MODE_ORDER[1],
 	}
+end
+
+local function getBallIndex(snapshot)
+	local indexed = {}
+	local balls = snapshot and snapshot.balls
+	if type(balls) ~= "table" then
+		return indexed
+	end
+
+	for i = 1, #balls do
+		local ball = balls[i]
+		if type(ball) == "table" and type(ball.id) == "number" then
+			indexed[ball.id] = ball
+		end
+	end
+
+	return indexed
+end
+
+local function nearestPocket(x, z)
+	local nearest = nil
+	local nearestDistSq = math.huge
+
+	for i = 1, #constants.pocketCenters do
+		local pocket = constants.pocketCenters[i]
+		local dx = x - pocket.x
+		local dz = z - pocket.z
+		local distSq = (dx * dx) + (dz * dz)
+		if distSq < nearestDistSq then
+			nearest = pocket
+			nearestDistSq = distSq
+		end
+	end
+
+	return nearest
 end
 
 function state.ensureModelsLoaded(context)
@@ -33,8 +82,8 @@ function state.ensureModelsLoaded(context)
 	end
 end
 
-local function emit(name, payload)
-	local ok = emitServerEvent(name, payload)
+local function emit(name, ...)
+	local ok = emitServerEvent(name, ...)
 	if not ok then
 		plugin:warn("Failed to emit pool event '" .. tostring(name) .. "'")
 	end
@@ -42,27 +91,84 @@ local function emit(name, payload)
 end
 
 function state.requestState(context, forceSeatClaim)
-	local payload = {
-		localTick = context.localTicks,
-	}
-
-	return emit(constants.EVENTS.requestState, payload)
+	return emit(constants.EVENTS.requestState, context.localTicks, forceSeatClaim == true)
 end
 
-function state.sendCommand(context, action, payload)
-	payload = payload or {}
-	payload.action = action
-	payload.localTick = context.localTicks
-	return emit(constants.EVENTS.command, payload)
+function state.sendCommand(context, action, ...)
+	return emit(constants.EVENTS.command, action, context.localTicks, ...)
 end
 
 function state.applySnapshot(context, data)
-	if type(data) ~= "table" then
+	if type(data) == "string" then
+		local decoded, decodeErr = codec.decodeSnapshot(data)
+		if not decoded then
+			plugin:warn("Failed to decode pool snapshot: " .. tostring(decodeErr))
+			return
+		end
+		data = decoded
+	elseif type(data) ~= "table" then
 		return
+	end
+
+	constants.applyServerConstants(data.sharedConstants)
+
+	local previousSnapshot = context.snapshot
+	if type(previousSnapshot) == "table" and type(data.balls) == "table" then
+		local previousBalls = getBallIndex(previousSnapshot)
+		local nextBalls = getBallIndex(data)
+
+		for i = 1, #data.balls do
+			local ball = data.balls[i]
+			local previous = previousBalls[ball.id]
+			if ball.active and (not previous or previous.active ~= true) then
+				context.ballAnimations[ball.id] = {
+					kind = "spawn",
+					startTick = context.localTicks,
+					endTick = context.localTicks + constants.BALL_PLACE_ANIM_TICKS,
+					x = ball.x,
+					z = ball.z,
+					modelName = ball.modelName or ballModelNameForId(ball.id),
+				}
+			end
+		end
+
+		for id, previous in pairs(previousBalls) do
+			local nextBall = nextBalls[id]
+			if previous.active and (not nextBall or nextBall.active ~= true) then
+				local pocket = nearestPocket(previous.x, previous.z)
+				context.ballAnimations[id] = {
+					kind = "despawn",
+					startTick = context.localTicks,
+					endTick = context.localTicks + constants.BALL_SINK_ANIM_TICKS,
+					x = previous.x,
+					z = previous.z,
+					targetX = pocket and pocket.x or previous.x,
+					targetZ = pocket and pocket.z or previous.z,
+					modelName = previous.modelName or ballModelNameForId(previous.id),
+				}
+			elseif nextBall and nextBall.active then
+				local animation = context.ballAnimations[id]
+				if animation and animation.kind == "despawn" then
+					context.ballAnimations[id] = nil
+				end
+			end
+		end
+	else
+		context.ballAnimations = {}
+	end
+
+	if type(data.balls) == "table" then
+		for i = 1, #data.balls do
+			local ball = data.balls[i]
+			if type(ball) == "table" and ball.modelName == nil then
+				ball.modelName = ballModelNameForId(ball.id)
+			end
+		end
 	end
 
 	context.snapshot = data
 	context.lastSnapshotTick = context.localTicks
+
 	if type(data.noticeLine) == "string" and data.noticeLine ~= "" then
 		context.noticeLine = data.noticeLine
 	elseif type(data.statusLine) == "string" and data.statusLine ~= "" then
@@ -73,13 +179,21 @@ function state.applySnapshot(context, data)
 end
 
 function state.applyNotice(context, data)
-	if type(data) == "table" and type(data.text) == "string" and data.text ~= "" then
+	if type(data) == "string" and data ~= "" then
+		context.noticeLine = data
+	elseif type(data) == "table" and type(data.text) == "string" and data.text ~= "" then
 		context.noticeLine = data.text
 	end
 end
 
 function state.logicTick(context)
 	context.localTicks = context.localTicks + 1
+
+	for id, animation in pairs(context.ballAnimations) do
+		if context.localTicks >= (animation.endTick or 0) then
+			context.ballAnimations[id] = nil
+		end
+	end
 
 	if context.snapshot == nil then
 		if context.localTicks == 1 or context.localTicks % constants.RESUBSCRIBE_TICKS == 0 then
@@ -97,8 +211,29 @@ function state.logicTick(context)
 	end
 end
 
-function state.getCueBall(context)
+function state.getRenderSnapshot(context)
 	local snapshot = context.snapshot
+	if type(snapshot) ~= "table" then
+		return nil
+	end
+
+	return snapshot
+end
+
+function state.getBallAnimation(context, ballId)
+	if type(ballId) ~= "number" then
+		return nil
+	end
+
+	return context.ballAnimations[ballId]
+end
+
+function state.getBallAnimations(context)
+	return context.ballAnimations
+end
+
+function state.getCueBall(context, snapshot)
+	snapshot = snapshot or context.snapshot
 	local balls = snapshot and snapshot.balls
 	if type(balls) ~= "table" then
 		return nil
@@ -114,8 +249,8 @@ function state.getCueBall(context)
 	return nil
 end
 
-function state.getLocalSeat(context)
-	local snapshot = context.snapshot
+function state.getLocalSeat(context, snapshot)
+	snapshot = snapshot or context.snapshot
 	if type(snapshot) ~= "table" then
 		return nil
 	end
@@ -126,6 +261,70 @@ function state.getLocalSeat(context)
 	end
 
 	return nil
+end
+
+local function canControlCue(context, snapshot)
+	snapshot = snapshot or context.snapshot
+	if type(snapshot) ~= "table" then
+		return false
+	end
+
+	local localSeat = state.getLocalSeat(context, snapshot)
+	if not localSeat then
+		return false
+	end
+
+	if snapshot.phase ~= "playing" or snapshot.winner ~= nil or snapshot.moving == true then
+		return false
+	end
+
+	return tonumber(snapshot.turnPlayer) == localSeat
+end
+
+function state.moveCueByCamera(context, forwardSign, rightSign)
+	local snapshot = context.snapshot
+	if not canControlCue(context, snapshot) or not snapshot.ballInHand then
+		return false
+	end
+
+	local cueAim = tonumber(snapshot.cueAim) or 0.0
+	local forwardX = math.cos(cueAim)
+	local forwardZ = math.sin(cueAim)
+	local rightX = forwardZ
+	local rightZ = -forwardX
+
+	local f = tonumber(forwardSign) or 0.0
+	local r = tonumber(rightSign) or 0.0
+	if f == 0.0 and r == 0.0 then
+		return false
+	end
+
+	local moveStep = constants.CUE_MOVE_STEP
+	local dx = ((forwardX * f) + (rightX * r)) * moveStep
+	local dz = ((forwardZ * f) + (rightZ * r)) * moveStep
+	state.sendCommand(context, "move_cue", dx, dz)
+	return true
+end
+
+function state.shoot(context)
+	local snapshot = context.snapshot
+	if not canControlCue(context, snapshot) then
+		return false
+	end
+
+	local cueBall = state.getCueBall(context, snapshot)
+	if not cueBall or not cueBall.active then
+		return false
+	end
+
+	local cueAim = tonumber(snapshot.cueAim) or 0.0
+	local shotPower = tonumber(snapshot.shotPower) or constants.MIN_SHOT_POWER
+	if snapshot.ballInHand then
+		state.sendCommand(context, "shoot", cueAim, shotPower, tonumber(cueBall.x), tonumber(cueBall.z))
+	else
+		state.sendCommand(context, "shoot", cueAim, shotPower)
+	end
+	return true
 end
 
 function state.getSeatDisplay(snapshot, seat)
@@ -146,8 +345,8 @@ function state.getSeatDisplay(snapshot, seat)
 	return "-"
 end
 
-function state.getSeatInfo(context, seat)
-	local snapshot = context.snapshot
+function state.getSeatInfo(context, seat, snapshot)
+	snapshot = snapshot or context.snapshot
 	local seats = snapshot and snapshot.seats
 	if type(seats) ~= "table" then
 		return nil

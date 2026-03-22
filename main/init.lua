@@ -8,9 +8,10 @@ require("main.blips")
 require("main.enum")
 require("main.dataTyper")
 require("main.gameUtil")
+local eventCodec = require("main.eventCodec")
 
-local json = require("main.json")
 local yaml = require("main.yaml")
+local unpackFn = table.unpack or unpack
 
 local hasConfigLoadedOnce = false
 
@@ -49,39 +50,43 @@ function loadConfig(fileName)
 end
 
 local serverEventHandlers = {}
+local serverEventNamesByHash = {}
 
 function onServerEvent(name, fn)
 	assert(type(name) == "string" and name ~= "", "onServerEvent(name, fn): name must be non-empty string")
 	assert(type(fn) == "function", "onServerEvent(name, fn): fn must be function")
 
-	if not serverEventHandlers[name] then
-		serverEventHandlers[name] = {}
+	local hash = eventCodec.hashName(name)
+	local existingName = serverEventNamesByHash[hash]
+	if existingName and existingName ~= name then
+		error(string.format("onServerEvent hash collision: '%s' conflicts with '%s'", name, existingName))
+	end
+	serverEventNamesByHash[hash] = name
+
+	if not serverEventHandlers[hash] then
+		serverEventHandlers[hash] = {}
 	end
 
-	table.insert(serverEventHandlers[name], fn)
+	table.insert(serverEventHandlers[hash], fn)
 end
 
-function emitServerEvent(name, data, bin)
-	assert(type(name) == "string" and name ~= "", "emitServerEvent(name, data, bin): name must be non-empty string")
-	if bin ~= nil then
-		assert(type(bin) == "string", "emitServerEvent(name, data, bin): bin must be string or nil")
+function emitServerEvent(name, ...)
+	assert(type(name) == "string" and name ~= "", "emitServerEvent(name, ...): name must be non-empty string")
+	local hash = eventCodec.hashName(name)
+	local existingName = serverEventNamesByHash[hash]
+	if existingName and existingName ~= name then
+		error(string.format("emitServerEvent hash collision: '%s' conflicts with '%s'", name, existingName))
 	end
+	serverEventNamesByHash[hash] = name
 
-	local dataJson = "null"
-	if data ~= nil then
-		local ok, encoded = pcall(json.encode, data)
-		if ok then
-			dataJson = encoded
-		else
-			dataJson = json.encode(tostring(data))
-		end
-	end
+	local argsBytes, encodeErr = eventCodec.encodeArgs(...)
+	assert(argsBytes ~= nil, "emitServerEvent(name, ...): " .. tostring(encodeErr))
 
-	return __src_emit_server_event(name, dataJson, bin)
+	return __src_emit_server_event(name, hash, argsBytes)
 end
 
-function __src_dispatch_server_event(name, dataJson, bin)
-	local handlers = serverEventHandlers[name]
+function __src_dispatch_server_event(hash, argsBytes)
+	local handlers = serverEventHandlers[hash]
 	if not handlers or #handlers == 0 then
 		return {
 			status = "no_handler",
@@ -91,14 +96,14 @@ function __src_dispatch_server_event(name, dataJson, bin)
 		}
 	end
 
-	local payload = nil
-	if type(dataJson) == "string" and dataJson ~= "" and dataJson ~= "null" then
-		local ok, decoded = pcall(json.decode, dataJson)
-		if ok then
-			payload = decoded
-		else
-			payload = dataJson
-		end
+	local args = eventCodec.decodeArgs(argsBytes)
+	if not args then
+		return {
+			status = "decode_error",
+			handled = 0,
+			errors = 1,
+			error = "invalid event arg blob",
+		}
 	end
 
 	local handled = 0
@@ -106,7 +111,7 @@ function __src_dispatch_server_event(name, dataJson, bin)
 	local firstError = nil
 
 	for _, fn in ipairs(handlers) do
-		local ok, err = pcall(fn, payload, bin)
+		local ok, err = pcall(fn, unpackFn(args, 1, args.n))
 		if not ok then
 			errors = errors + 1
 			if not firstError then
@@ -133,6 +138,8 @@ function __src_dispatch_server_event(name, dataJson, bin)
 		errors = 0,
 	}
 end
+
+blob = eventCodec.blob
 
 function __src_dispatch_hook(eventName, ...)
 	return hook.run(eventName, ...)
