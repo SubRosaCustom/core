@@ -25,15 +25,15 @@ local bindToggleOverlay = "srcc_showcase_toggle_overlay"
 local bindPingServer = "srcc_showcase_ping_server"
 local bindRequestState = "srcc_showcase_request_state"
 
-local function pushLine(text)
+local function push_line(text)
 	table.insert(overlayLines, 1, tostring(text))
 	while #overlayLines > 10 do
 		table.remove(overlayLines)
 	end
 end
 
-local function setStatus(text, r, g, b, a)
-	pushLine(text)
+local function set_status(text, r, g, b, a)
+	push_line(text)
 	statusColor[1] = r or statusColor[1]
 	statusColor[2] = g or statusColor[2]
 	statusColor[3] = b or statusColor[3]
@@ -43,26 +43,26 @@ end
 local function emit(name, ...)
 	local ok = emitServerEvent(name, ...)
 	if ok then
-		pushLine("emitServerEvent OK: " .. name)
+		push_line("emitServerEvent OK: " .. name)
 	else
-		setStatus("emitServerEvent FAILED: " .. name, 1.0, 0.35, 0.35, 1.0)
+		set_status("emitServerEvent FAILED: " .. name, 1.0, 0.35, 0.35, 1.0)
 	end
 end
 
 onServerEvent("srcc.showcase.welcome", function(message, serverTick)
-	setStatus("> WELCOME from server: " .. tostring(message) .. " @" .. tostring(serverTick), 0.2, 0.9, 1.0, 1.0)
+	set_status("> WELCOME from server: " .. tostring(message) .. " @" .. tostring(serverTick), 0.2, 0.9, 1.0, 1.0)
 end)
 
 onServerEvent("srcc.showcase.pong", function(serverTick, reason)
-	setStatus("> PONG serverTick=" .. tostring(serverTick) .. " reason=" .. tostring(reason), 0.3, 1.0, 0.3, 1.0)
+	set_status("> PONG serverTick=" .. tostring(serverTick) .. " reason=" .. tostring(reason), 0.3, 1.0, 0.3, 1.0)
 end)
 
 onServerEvent("srcc.showcase.state", function(serverTick, connectedClients)
-	setStatus("> STATE tick=" .. tostring(serverTick) .. " connectedClients=" .. tostring(connectedClients), 1.0, 0.85, 0.35, 1.0)
+	set_status("> STATE tick=" .. tostring(serverTick) .. " connectedClients=" .. tostring(connectedClients), 1.0, 0.85, 0.35, 1.0)
 end)
 
 onServerEvent("srcc.showcase.notice", function(text, serverTick)
-	setStatus("> NOTICE: " .. tostring(text) .. " @" .. tostring(serverTick), 1.0, 1.0, 0.35, 1.0)
+	set_status("> NOTICE: " .. tostring(text) .. " @" .. tostring(serverTick), 1.0, 1.0, 0.35, 1.0)
 end)
 
 plugin:addEnableHandler(function()
@@ -73,7 +73,7 @@ plugin:addEnableHandler(function()
 	input:bind(bindToggleOverlay, plugin.config.toggleOverlayScancode, function(_, toggled)
 		if toggled then
 			overlayEnabled = not overlayEnabled
-			pushLine("Overlay toggled: " .. tostring(overlayEnabled))
+			push_line("Overlay toggled: " .. tostring(overlayEnabled))
 		end
 	end, true, 5)
 
@@ -110,8 +110,8 @@ plugin:addEnableHandler(function()
 		size = 4, shape = blips.shape.square,
 	})
 
-	pushLine("SRCC Showcase enabled")
-	pushLine("F6 toggle overlay | F7 ping server | F8 request state")
+	push_line("SRCC Showcase enabled")
+	push_line("F6 toggle overlay | F7 ping server | F8 request state")
 
 	emit("srcc.showcase.hello", client and client.serverAddress or "unknown", client and client.serverPort or 0)
 end)

@@ -12,7 +12,7 @@ local function push(parts, ...)
 	end
 end
 
-local function ballModelNameForId(ballId)
+local function ball_model_name_for_id(ballId)
 	if ballId == 0 then
 		return "cueball"
 	end
@@ -124,7 +124,7 @@ function codec.decodeSnapshot(blob)
 	end
 
 	local index = 1
-	local function nextValue()
+	local function next_value()
 		if index > countOrErr then
 			return nil
 		end
@@ -134,25 +134,25 @@ function codec.decodeSnapshot(blob)
 	end
 
 	local snapshot = {
-		snapshotVersion = nextValue(),
-		version = nextValue(),
-		serverTick = nextValue(),
-		phase = nextValue(),
-		matchNumber = nextValue(),
-		turnPlayer = nextValue(),
-		winner = nextValue(),
-		lastWinnerSeat = nextValue(),
-		ballInHand = nextValue() == true,
-		cueAim = nextValue(),
-		shotPower = nextValue(),
-		statusLine = nextValue(),
-		noticeLine = nextValue(),
-		moving = nextValue() == true,
-		localSeat = nextValue(),
-		practiceMode = nextValue() == true,
+		snapshotVersion = next_value(),
+		version = next_value(),
+		serverTick = next_value(),
+		phase = next_value(),
+		matchNumber = next_value(),
+		turnPlayer = next_value(),
+		winner = next_value(),
+		lastWinnerSeat = next_value(),
+		ballInHand = next_value() == true,
+		cueAim = next_value(),
+		shotPower = next_value(),
+		statusLine = next_value(),
+		noticeLine = next_value(),
+		moving = next_value() == true,
+		localSeat = next_value(),
+		practiceMode = next_value() == true,
 		assignments = {
-			[1] = nextValue(),
-			[2] = nextValue(),
+			[1] = next_value(),
+			[2] = next_value(),
 		},
 		seats = {},
 		sharedConstants = {},
@@ -160,10 +160,10 @@ function codec.decodeSnapshot(blob)
 	}
 
 	for seatIndex = 1, 2 do
-		local playerIndex = nextValue()
-		local playerName = nextValue()
-		local ready = nextValue() == true
-		local wins = nextValue()
+		local playerIndex = next_value()
+		local playerName = next_value()
+		local ready = next_value() == true
+		local wins = next_value()
 		if playerIndex ~= nil or playerName ~= nil or ready or (tonumber(wins) or 0) ~= 0 then
 			snapshot.seats[seatIndex] = {
 				playerIndex = playerIndex,
@@ -175,46 +175,46 @@ function codec.decodeSnapshot(blob)
 	end
 
 	local shared = snapshot.sharedConstants
-	shared.tableMinX = nextValue()
-	shared.tableMaxX = nextValue()
-	shared.tableMinZ = nextValue()
-	shared.tableMaxZ = nextValue()
-	shared.headStringX = nextValue()
-	shared.cueStartX = nextValue()
-	shared.cueStartZ = nextValue()
-	shared.ballRadius = nextValue()
-	shared.pocketRadius = nextValue()
-	shared.tableFriction = nextValue()
-	shared.railBounce = nextValue()
-	shared.collisionDamping = nextValue()
-	shared.stopEpsilon = nextValue()
-	shared.physicsSubsteps = nextValue()
-	shared.aimStep = nextValue()
-	shared.powerStep = nextValue()
-	shared.minShotPower = nextValue()
-	shared.maxShotPower = nextValue()
-	shared.shotPowerScale = nextValue()
-	shared.cueMoveStep = nextValue()
+	shared.tableMinX = next_value()
+	shared.tableMaxX = next_value()
+	shared.tableMinZ = next_value()
+	shared.tableMaxZ = next_value()
+	shared.headStringX = next_value()
+	shared.cueStartX = next_value()
+	shared.cueStartZ = next_value()
+	shared.ballRadius = next_value()
+	shared.pocketRadius = next_value()
+	shared.tableFriction = next_value()
+	shared.railBounce = next_value()
+	shared.collisionDamping = next_value()
+	shared.stopEpsilon = next_value()
+	shared.physicsSubsteps = next_value()
+	shared.aimStep = next_value()
+	shared.powerStep = next_value()
+	shared.minShotPower = next_value()
+	shared.maxShotPower = next_value()
+	shared.shotPowerScale = next_value()
+	shared.cueMoveStep = next_value()
 
-	local pocketCount = tonumber(nextValue()) or 0
+	local pocketCount = tonumber(next_value()) or 0
 	shared.pocketCenters = {}
 	for i = 1, pocketCount do
 		shared.pocketCenters[i] = {
-			x = nextValue(),
-			z = nextValue(),
+			x = next_value(),
+			z = next_value(),
 		}
 	end
 
-	local ballCount = tonumber(nextValue()) or 0
+	local ballCount = tonumber(next_value()) or 0
 	for i = 1, ballCount do
-		local ballId = nextValue()
+		local ballId = next_value()
 		local ball = {
 			id = ballId,
-			x = nextValue(),
-			z = nextValue(),
-			active = nextValue() == true,
+			x = next_value(),
+			z = next_value(),
+			active = next_value() == true,
 		}
-		ball.modelName = ballModelNameForId(ball.id)
+		ball.modelName = ball_model_name_for_id(ball.id)
 		snapshot.balls[i] = ball
 	end
 

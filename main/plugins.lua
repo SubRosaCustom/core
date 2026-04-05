@@ -2,7 +2,7 @@
 
 local json = require("main.json")
 
-local function printScoped(...)
+local function print_scoped(...)
 	print("\27[34m[SRCC/Plugins]\27[0m " .. concatVarArgs("\t", ...))
 end
 
@@ -152,7 +152,7 @@ function plugin:load(isEnabled, isReload)
 		loadedFile(self)
 	end)
 	if not success then
-		printScoped(string.format("\27[38;5;196mFailed to load plugin '%s': %s", self.entryPath, err or "unknown"))
+		print_scoped(string.format("\27[38;5;196mFailed to load plugin '%s': %s", self.entryPath, err or "unknown"))
 		self:disable(false)
 		return false
 	end
@@ -189,7 +189,7 @@ end
 function plugin.onEnable(_) end
 function plugin.onDisable(_) end
 
-local function newPlugin(nameSpace, stem)
+local function new_plugin(nameSpace, stem)
 	return setmetatable({
 		name = "Unknown",
 		author = "Unknown",
@@ -208,7 +208,7 @@ local function newPlugin(nameSpace, stem)
 	}, plugin)
 end
 
-local function collectEntries(nameSpace)
+local function collect_entries(nameSpace)
 	local entries = {}
 	for _, path in ipairs(__src_list_scripts()) do
 		if path:startsWith(nameSpace .. "/") then
@@ -236,29 +236,29 @@ local function collectEntries(nameSpace)
 	return entries
 end
 
-local function shouldStartPluginEnabled(plug)
+local function should_start_plugin_enabled(plug)
 	return not disabledPluginsMap[plug.fileName]
 end
 
-local function shouldStartModeEnabled(plug)
+local function should_start_mode_enabled(plug)
 	return plug.fileName == hook.persistentMode
 end
 
-local function discoverInNameSpace(nameSpace, isEnabledFunc)
+local function discover_in_name_space(nameSpace, isEnabledFunc)
 	local numLoaded = 0
 	local numErrored = 0
 
-	local entries = collectEntries(nameSpace)
+	local entries = collect_entries(nameSpace)
 	for stem, entry in pairs(entries) do
 		if not hook.plugins[stem] then
-			local plug = newPlugin(nameSpace, stem)
+			local plug = new_plugin(nameSpace, stem)
 			plug.entryPath = entry.path
 			plug.fullFileName = entry.fullFileName
 
 			hook.plugins[stem] = plug
 			local isEnabled = isEnabledFunc(plug)
 
-			printScoped(string.format("Loading \27[30;1m%s.\27[0m%s", nameSpace, stem))
+			print_scoped(string.format("Loading \27[30;1m%s.\27[0m%s", nameSpace, stem))
 			local success = plug:load(isEnabled, false)
 			if success then
 				numLoaded = numLoaded + 1
@@ -271,37 +271,37 @@ local function discoverInNameSpace(nameSpace, isEnabledFunc)
 	return numLoaded, numErrored
 end
 
-local function loadPluginNameSpace(nameSpace, isEnabledFunc)
-	printScoped("Loading " .. nameSpace .. "...")
+local function load_plugin_name_space(nameSpace, isEnabledFunc)
+	print_scoped("Loading " .. nameSpace .. "...")
 
-	local numLoaded, numErrored = discoverInNameSpace(nameSpace, isEnabledFunc)
-	printScoped("Loaded " .. numLoaded .. " " .. nameSpace)
+	local numLoaded, numErrored = discover_in_name_space(nameSpace, isEnabledFunc)
+	print_scoped("Loaded " .. numLoaded .. " " .. nameSpace)
 	if numErrored > 0 then
-		printScoped(string.format("\27[38;5;196mFailed to load %d %s", numErrored, nameSpace))
+		print_scoped(string.format("\27[38;5;196mFailed to load %d %s", numErrored, nameSpace))
 	end
 end
 
-local function loadPlugins()
+local function load_plugins()
 	if hook.persistentMode == "" and type(config.defaultGameMode) == "string" then
 		hook.persistentMode = config.defaultGameMode
 	end
 
-	loadPluginNameSpace("plugins", shouldStartPluginEnabled)
-	loadPluginNameSpace("modes", shouldStartModeEnabled)
+	load_plugin_name_space("plugins", should_start_plugin_enabled)
+	load_plugin_name_space("modes", should_start_mode_enabled)
 	hook.resetCache()
 end
 
 function discoverNewPlugins()
 	local numLoaded = 0
-	local a, b = discoverInNameSpace("plugins", shouldStartPluginEnabled)
+	local a, b = discover_in_name_space("plugins", should_start_plugin_enabled)
 	numLoaded = numLoaded + a + b
-	local c, d = discoverInNameSpace("modes", shouldStartModeEnabled)
+	local c, d = discover_in_name_space("modes", should_start_mode_enabled)
 	numLoaded = numLoaded + c + d
 	hook.resetCache()
 	return numLoaded
 end
 
-local function reloadConfigOfPlugins()
+local function reload_config_of_plugins()
 	for _, plug in pairs(hook.plugins) do
 		plug:setConfig()
 	end
@@ -309,13 +309,13 @@ end
 
 hook.add("ConfigLoaded", "main.plugins", function(isReload)
 	if not isReload then
-		loadPlugins()
+		load_plugins()
 	else
-		reloadConfigOfPlugins()
+		reload_config_of_plugins()
 	end
 end)
 
-local function pluginInfoFromPath(path)
+local function plugin_info_from_path(path)
 	for _, nameSpace in ipairs({ "plugins", "modes" }) do
 		if path:startsWith(nameSpace .. "/") then
 			local relative = path:sub(#nameSpace + 2)
@@ -334,14 +334,14 @@ local function pluginInfoFromPath(path)
 	return nil, nil
 end
 
-local function entryStillExists(entryPath)
+local function entry_still_exists(entryPath)
 	return __src_read_file(entryPath) ~= nil
 end
 
-local function applyPatch(changedPaths)
+local function apply_patch(changedPaths)
 	local touched = {}
 	for _, path in ipairs(changedPaths) do
-		local nameSpace, name = pluginInfoFromPath(path)
+		local nameSpace, name = plugin_info_from_path(path)
 		if nameSpace and name then
 			touched[nameSpace] = touched[nameSpace] or {}
 			touched[nameSpace][name] = true
@@ -349,16 +349,16 @@ local function applyPatch(changedPaths)
 	end
 
 	local entriesByNameSpace = {
-		plugins = collectEntries("plugins"),
-		modes = collectEntries("modes"),
+		plugins = collect_entries("plugins"),
+		modes = collect_entries("modes"),
 	}
 
-	local function shouldStartEnabled(nameSpace, plug)
+	local function should_start_enabled(nameSpace, plug)
 		if nameSpace == "modes" then
-			return shouldStartModeEnabled(plug)
+			return should_start_mode_enabled(plug)
 		end
 
-		return shouldStartPluginEnabled(plug)
+		return should_start_plugin_enabled(plug)
 	end
 
 	for nameSpace, touchedNames in pairs(touched) do
@@ -367,34 +367,34 @@ local function applyPatch(changedPaths)
 			local entry = entriesByNameSpace[nameSpace] and entriesByNameSpace[nameSpace][name] or nil
 
 			if plug and plug.nameSpace ~= nameSpace then
-				printScoped("Skipped patch for " .. nameSpace .. " " .. name .. " due namespace collision")
+				print_scoped("Skipped patch for " .. nameSpace .. " " .. name .. " due namespace collision")
 			elseif not entry then
 				if plug then
 					plug:disable(false)
 					hook.plugins[name] = nil
-					printScoped("Removed " .. nameSpace .. " " .. name)
+					print_scoped("Removed " .. nameSpace .. " " .. name)
 				end
 			elseif plug then
 				plug.entryPath = entry.path
 				plug.fullFileName = entry.fullFileName
 
-				if entryStillExists(plug.entryPath) then
+				if entry_still_exists(plug.entryPath) then
 					plug:reload()
-					printScoped("Reloaded " .. nameSpace .. " " .. name)
+					print_scoped("Reloaded " .. nameSpace .. " " .. name)
 				else
 					plug:disable(false)
 					hook.plugins[name] = nil
-					printScoped("Removed " .. nameSpace .. " " .. name)
+					print_scoped("Removed " .. nameSpace .. " " .. name)
 				end
 			else
-				local newPlug = newPlugin(nameSpace, name)
+				local newPlug = new_plugin(nameSpace, name)
 				newPlug.entryPath = entry.path
 				newPlug.fullFileName = entry.fullFileName
 				hook.plugins[name] = newPlug
 
-				local ok = newPlug:load(shouldStartEnabled(nameSpace, newPlug), false)
+				local ok = newPlug:load(should_start_enabled(nameSpace, newPlug), false)
 				if ok then
-					printScoped("Loaded new " .. nameSpace .. " " .. name)
+					print_scoped("Loaded new " .. nameSpace .. " " .. name)
 				end
 			end
 		end
@@ -406,8 +406,10 @@ local function applyPatch(changedPaths)
 end
 
 return {
-	applyPatch = applyPatch,
-	loadPlugins = loadPlugins,
+	applyPatch = apply_patch,
+	loadPlugins = load_plugins,
+	apply_patch = apply_patch,
+	load_plugins = load_plugins,
 	discoverNewPlugins = discoverNewPlugins,
 	plugin = plugin,
 }

@@ -403,7 +403,7 @@ end
 
 ---@param columnWidths integer[]
 ---@param padding integer
-local function getHorizontalLine(columnWidths, padding)
+local function get_horizontal_line(columnWidths, padding)
 	local line = "+"
 
 	for _, width in ipairs(columnWidths) do
@@ -415,7 +415,7 @@ end
 
 ---@param row any[]
 ---@param columnWidths integer[]
-local function getRowString(row, columnWidths, padding)
+local function get_row_string(row, columnWidths, padding)
 	local str = "|"
 
 	for column, width in ipairs(columnWidths) do
@@ -451,11 +451,11 @@ function drawTable(rows)
 		columnWidths[columnID] = max
 	end
 
-	local line = getHorizontalLine(columnWidths, padding)
+	local line = get_horizontal_line(columnWidths, padding)
 	print(line)
 
 	for _, row in ipairs(rows) do
-		print(getRowString(row, columnWidths, padding))
+		print(get_row_string(row, columnWidths, padding))
 		print(line)
 	end
 end

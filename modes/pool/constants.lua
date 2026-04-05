@@ -18,6 +18,7 @@ constants.defaultConfig = {
 	moveCueDownScancode = 22, -- S
 	cameraModeScancode = 5, -- B
 	hudModeScancode = 17, -- N
+	debugRenderScancode = 11, -- H
 	textScale = 16.0,
 }
 
@@ -111,6 +112,7 @@ constants.BINDS = {
 	moveCueDown = "pool_move_cue_down",
 	cameraMode = "pool_camera_mode",
 	hudMode = "pool_hud_mode",
+	debugRender = "pool_debug_render",
 }
 
 constants.EVENTS = {
@@ -210,7 +212,7 @@ function constants.nextMode(order, current)
 	return order[1]
 end
 
-local function applyNumberField(data, key, current)
+local function apply_number_field(data, key, current)
 	local value = data[key]
 	local parsed = tonumber(value)
 	if parsed == nil then
@@ -224,28 +226,28 @@ function constants.applyServerConstants(data)
 		return false
 	end
 
-	constants.TABLE_MIN_X = applyNumberField(data, "tableMinX", constants.TABLE_MIN_X)
-	constants.TABLE_MAX_X = applyNumberField(data, "tableMaxX", constants.TABLE_MAX_X)
-	constants.TABLE_MIN_Z = applyNumberField(data, "tableMinZ", constants.TABLE_MIN_Z)
-	constants.TABLE_MAX_Z = applyNumberField(data, "tableMaxZ", constants.TABLE_MAX_Z)
+	constants.TABLE_MIN_X = apply_number_field(data, "tableMinX", constants.TABLE_MIN_X)
+	constants.TABLE_MAX_X = apply_number_field(data, "tableMaxX", constants.TABLE_MAX_X)
+	constants.TABLE_MIN_Z = apply_number_field(data, "tableMinZ", constants.TABLE_MIN_Z)
+	constants.TABLE_MAX_Z = apply_number_field(data, "tableMaxZ", constants.TABLE_MAX_Z)
 	constants.TABLE_CENTER_X = (constants.TABLE_MIN_X + constants.TABLE_MAX_X) * 0.5
-	constants.HEAD_STRING_X = applyNumberField(data, "headStringX", constants.HEAD_STRING_X)
-	constants.CUE_START_X = applyNumberField(data, "cueStartX", constants.CUE_START_X)
-	constants.CUE_START_Z = applyNumberField(data, "cueStartZ", constants.CUE_START_Z)
-	constants.BALL_RADIUS = applyNumberField(data, "ballRadius", constants.BALL_RADIUS)
+	constants.HEAD_STRING_X = apply_number_field(data, "headStringX", constants.HEAD_STRING_X)
+	constants.CUE_START_X = apply_number_field(data, "cueStartX", constants.CUE_START_X)
+	constants.CUE_START_Z = apply_number_field(data, "cueStartZ", constants.CUE_START_Z)
+	constants.BALL_RADIUS = apply_number_field(data, "ballRadius", constants.BALL_RADIUS)
 	constants.BALL_DIAMETER = constants.BALL_RADIUS * 2.0
-	constants.POCKET_SPHERE_RADIUS = applyNumberField(data, "pocketRadius", constants.POCKET_SPHERE_RADIUS)
-	constants.TABLE_FRICTION = applyNumberField(data, "tableFriction", constants.TABLE_FRICTION)
-	constants.RAIL_BOUNCE = applyNumberField(data, "railBounce", constants.RAIL_BOUNCE)
-	constants.COLLISION_DAMPING = applyNumberField(data, "collisionDamping", constants.COLLISION_DAMPING)
-	constants.STOP_EPSILON = applyNumberField(data, "stopEpsilon", constants.STOP_EPSILON)
-	constants.PHYSICS_SUBSTEPS = applyNumberField(data, "physicsSubsteps", constants.PHYSICS_SUBSTEPS)
-	constants.AIM_STEP = applyNumberField(data, "aimStep", constants.AIM_STEP)
-	constants.POWER_STEP = applyNumberField(data, "powerStep", constants.POWER_STEP)
-	constants.MIN_SHOT_POWER = applyNumberField(data, "minShotPower", constants.MIN_SHOT_POWER)
-	constants.MAX_SHOT_POWER = applyNumberField(data, "maxShotPower", constants.MAX_SHOT_POWER)
-	constants.SHOT_POWER_SCALE = applyNumberField(data, "shotPowerScale", constants.SHOT_POWER_SCALE)
-	constants.CUE_MOVE_STEP = applyNumberField(data, "cueMoveStep", constants.CUE_MOVE_STEP)
+	constants.POCKET_SPHERE_RADIUS = apply_number_field(data, "pocketRadius", constants.POCKET_SPHERE_RADIUS)
+	constants.TABLE_FRICTION = apply_number_field(data, "tableFriction", constants.TABLE_FRICTION)
+	constants.RAIL_BOUNCE = apply_number_field(data, "railBounce", constants.RAIL_BOUNCE)
+	constants.COLLISION_DAMPING = apply_number_field(data, "collisionDamping", constants.COLLISION_DAMPING)
+	constants.STOP_EPSILON = apply_number_field(data, "stopEpsilon", constants.STOP_EPSILON)
+	constants.PHYSICS_SUBSTEPS = apply_number_field(data, "physicsSubsteps", constants.PHYSICS_SUBSTEPS)
+	constants.AIM_STEP = apply_number_field(data, "aimStep", constants.AIM_STEP)
+	constants.POWER_STEP = apply_number_field(data, "powerStep", constants.POWER_STEP)
+	constants.MIN_SHOT_POWER = apply_number_field(data, "minShotPower", constants.MIN_SHOT_POWER)
+	constants.MAX_SHOT_POWER = apply_number_field(data, "maxShotPower", constants.MAX_SHOT_POWER)
+	constants.SHOT_POWER_SCALE = apply_number_field(data, "shotPowerScale", constants.SHOT_POWER_SCALE)
+	constants.CUE_MOVE_STEP = apply_number_field(data, "cueMoveStep", constants.CUE_MOVE_STEP)
 
 	local incomingPockets = data.pocketCenters
 	if type(incomingPockets) == "table" then
