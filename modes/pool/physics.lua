@@ -3,7 +3,7 @@ local constants = plugin:require("constants")
 
 local physics = {}
 
-local function is_ball_inside_pocket_sphere(ball, pocket)
+local function isBallInsidePocketSphere(ball, pocket)
 	local dx = ball.x - pocket.x
 	local dz = ball.z - pocket.z
 	local dy = constants.POCKET_CENTER_DEPTH
@@ -34,7 +34,7 @@ function physics.runPhysicsTick(context, state)
 		if ball.active then
 			for i = 1, #constants.pocketCenters do
 				local pocket = constants.pocketCenters[i]
-				if is_ball_inside_pocket_sphere(ball, pocket) then
+				if isBallInsidePocketSphere(ball, pocket) then
 					state.pocketBall(context, ball)
 					break
 				end

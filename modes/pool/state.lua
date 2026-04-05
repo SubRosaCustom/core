@@ -4,7 +4,7 @@ local codec = plugin:require("codec")
 
 local state = {}
 
-local function ball_model_name_for_id(ballId)
+local function ballModelNameForId(ballId)
 	if ballId == 0 then
 		return "cueball"
 	end
@@ -30,11 +30,10 @@ function state.newContext()
 		cameraFov = nil,
 		cameraMode = constants.CAMERA_MODE_ORDER[1],
 		hudMode = constants.HUD_MODE_ORDER[1],
-		debugRenderVisible = true,
 	}
 end
 
-local function get_ball_index(snapshot)
+local function getBallIndex(snapshot)
 	local indexed = {}
 	local balls = snapshot and snapshot.balls
 	if type(balls) ~= "table" then
@@ -51,7 +50,7 @@ local function get_ball_index(snapshot)
 	return indexed
 end
 
-local function nearest_pocket(x, z)
+local function nearestPocket(x, z)
 	local nearest = nil
 	local nearestDistSq = math.huge
 
@@ -115,8 +114,8 @@ function state.applySnapshot(context, data)
 
 	local previousSnapshot = context.snapshot
 	if type(previousSnapshot) == "table" and type(data.balls) == "table" then
-		local previousBalls = get_ball_index(previousSnapshot)
-		local nextBalls = get_ball_index(data)
+		local previousBalls = getBallIndex(previousSnapshot)
+		local nextBalls = getBallIndex(data)
 
 		for i = 1, #data.balls do
 			local ball = data.balls[i]
@@ -128,7 +127,7 @@ function state.applySnapshot(context, data)
 					endTick = context.localTicks + constants.BALL_PLACE_ANIM_TICKS,
 					x = ball.x,
 					z = ball.z,
-					modelName = ball.modelName or ball_model_name_for_id(ball.id),
+					modelName = ball.modelName or ballModelNameForId(ball.id),
 				}
 			end
 		end
@@ -136,7 +135,7 @@ function state.applySnapshot(context, data)
 		for id, previous in pairs(previousBalls) do
 			local nextBall = nextBalls[id]
 			if previous.active and (not nextBall or nextBall.active ~= true) then
-				local pocket = nearest_pocket(previous.x, previous.z)
+				local pocket = nearestPocket(previous.x, previous.z)
 				context.ballAnimations[id] = {
 					kind = "despawn",
 					startTick = context.localTicks,
@@ -145,7 +144,7 @@ function state.applySnapshot(context, data)
 					z = previous.z,
 					targetX = pocket and pocket.x or previous.x,
 					targetZ = pocket and pocket.z or previous.z,
-					modelName = previous.modelName or ball_model_name_for_id(previous.id),
+					modelName = previous.modelName or ballModelNameForId(previous.id),
 				}
 			elseif nextBall and nextBall.active then
 				local animation = context.ballAnimations[id]
@@ -162,7 +161,7 @@ function state.applySnapshot(context, data)
 		for i = 1, #data.balls do
 			local ball = data.balls[i]
 			if type(ball) == "table" and ball.modelName == nil then
-				ball.modelName = ball_model_name_for_id(ball.id)
+				ball.modelName = ballModelNameForId(ball.id)
 			end
 		end
 	end
@@ -264,7 +263,7 @@ function state.getLocalSeat(context, snapshot)
 	return nil
 end
 
-local function can_control_cue(context, snapshot)
+local function canControlCue(context, snapshot)
 	snapshot = snapshot or context.snapshot
 	if type(snapshot) ~= "table" then
 		return false
@@ -284,7 +283,7 @@ end
 
 function state.moveCueByCamera(context, forwardSign, rightSign)
 	local snapshot = context.snapshot
-	if not can_control_cue(context, snapshot) or not snapshot.ballInHand then
+	if not canControlCue(context, snapshot) or not snapshot.ballInHand then
 		return false
 	end
 
@@ -309,7 +308,7 @@ end
 
 function state.shoot(context)
 	local snapshot = context.snapshot
-	if not can_control_cue(context, snapshot) then
+	if not canControlCue(context, snapshot) then
 		return false
 	end
 
@@ -378,10 +377,6 @@ function state.getHudMode(context)
 	return context.hudMode or constants.HUD_MODE_ORDER[1]
 end
 
-function state.isDebugRenderVisible(context)
-	return context.debugRenderVisible ~= false
-end
-
 function state.cycleCameraMode(context)
 	context.cameraMode = constants.nextMode(constants.CAMERA_MODE_ORDER, state.getCameraMode(context))
 	context.noticeLine = constants.CAMERA_MODE_LABELS[context.cameraMode] or "Camera updated."
@@ -390,12 +385,6 @@ end
 function state.cycleHudMode(context)
 	context.hudMode = constants.nextMode(constants.HUD_MODE_ORDER, state.getHudMode(context))
 	context.noticeLine = constants.HUD_MODE_LABELS[context.hudMode] or "HUD updated."
-end
-
-function state.toggleDebugRender(context)
-	local visible = not state.isDebugRenderVisible(context)
-	context.debugRenderVisible = visible
-	context.noticeLine = visible and "Debug render visible." or "Debug render hidden."
 end
 
 function state.isChatOpen()

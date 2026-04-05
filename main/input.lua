@@ -91,7 +91,7 @@ function input:removeBind(name)
 	self._keyBinds[name] = nil
 end
 
-local function trigger_toggle_binds_for_key(key, toggle, player)
+local function triggerToggleBindsForKey(key, toggle, player)
 	for _, bind in pairs(input._sortedBinds[key] or {}) do
 		local bindData = input._keyBinds[bind]
 		if bindData and bindData.toggle then
@@ -100,7 +100,7 @@ local function trigger_toggle_binds_for_key(key, toggle, player)
 	end
 end
 
-local function trigger_binds_for_key(key, state, player)
+local function triggerBindsForKey(key, state, player)
 	for _, bind in pairs(input._sortedBinds[key] or {}) do
 		local bindData = input._keyBinds[bind]
 		if bindData and not bindData.toggle then
@@ -109,7 +109,7 @@ local function trigger_binds_for_key(key, state, player)
 	end
 end
 
-local function dispatch_key(scancode, keyState)
+local function dispatchKey(scancode, keyState)
 	local binds = input._sortedBinds[scancode]
 	if not binds or #binds == 0 then
 		return
@@ -118,18 +118,18 @@ local function dispatch_key(scancode, keyState)
 	local player = client and client.player or nil
 
 	if keyState == KEY_PRESSED then
-		trigger_toggle_binds_for_key(scancode, true, player)
-		trigger_binds_for_key(scancode, input.state.begin, player)
+		triggerToggleBindsForKey(scancode, true, player)
+		triggerBindsForKey(scancode, input.state.begin, player)
 	elseif keyState == KEY_DOWN then
-		trigger_binds_for_key(scancode, input.state.current, player)
+		triggerBindsForKey(scancode, input.state.current, player)
 	elseif keyState == KEY_UP then
-		trigger_toggle_binds_for_key(scancode, false, player)
-		trigger_binds_for_key(scancode, input.state.ended, player)
+		triggerToggleBindsForKey(scancode, false, player)
+		triggerBindsForKey(scancode, input.state.ended, player)
 	end
 end
 
 function input._dispatch(scancode, keyState)
-	dispatch_key(scancode, keyState)
+	dispatchKey(scancode, keyState)
 end
 
 return input

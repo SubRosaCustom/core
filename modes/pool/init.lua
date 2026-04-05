@@ -14,20 +14,20 @@ plugin.defaultConfig = constants.defaultConfig
 local runtime = _G.__srccPoolClientRuntime or {
 	initialized = false,
 	activePlugin = nil,
-	active_context = nil,
+	activeContext = nil,
 }
 _G.__srccPoolClientRuntime = runtime
 
-local function active_context()
+local function activeContext()
 	local activePlugin = runtime.activePlugin
 	if not activePlugin or not activePlugin.isEnabled then
 		return nil
 	end
 
-	return runtime.active_context
+	return runtime.activeContext
 end
 
-local function install_handlers()
+local function installHandlers()
 	if runtime.initialized then
 		return
 	end
@@ -35,26 +35,26 @@ local function install_handlers()
 	runtime.initialized = true
 
 	onServerEvent(constants.EVENTS.state, function(snapshotBlob)
-		local context = active_context()
+		local context = activeContext()
 		if context then
 			state.applySnapshot(context, snapshotBlob)
 		end
 	end)
 
 	onServerEvent(constants.EVENTS.notice, function(text)
-		local context = active_context()
+		local context = activeContext()
 		if context then
 			state.applyNotice(context, text)
 		end
 	end)
 end
 
-install_handlers()
+installHandlers()
 
 plugin:addEnableHandler(function()
 	local context = state.newContext()
 	runtime.activePlugin = plugin
-	runtime.active_context = context
+	runtime.activeContext = context
 
 	state.ensureModelsLoaded(context)
 	poolInput.bind(context, state)
@@ -64,7 +64,7 @@ end)
 plugin:addDisableHandler(function()
 	poolInput.unbind()
 
-	local context = runtime.active_context
+	local context = runtime.activeContext
 	if context then
 		state.restoreCamera(context)
 		context.loadedModelIds = {}
@@ -72,12 +72,12 @@ plugin:addDisableHandler(function()
 
 	if runtime.activePlugin == plugin then
 		runtime.activePlugin = nil
-		runtime.active_context = nil
+		runtime.activeContext = nil
 	end
 end)
 
 plugin:addHook("Logic", function()
-	local context = active_context()
+	local context = activeContext()
 	if not context then
 		return
 	end
@@ -86,7 +86,7 @@ plugin:addHook("Logic", function()
 end)
 
 plugin:addHook("RenderFrame", function()
-	local context = active_context()
+	local context = activeContext()
 	if not context then
 		return
 	end
@@ -96,7 +96,7 @@ plugin:addHook("RenderFrame", function()
 end)
 
 plugin:addHook("PostRenderFrame", function()
-	local context = active_context()
+	local context = activeContext()
 	if not context then
 		return
 	end
@@ -105,7 +105,7 @@ plugin:addHook("PostRenderFrame", function()
 end)
 
 plugin:addHook("Draw3D", function()
-	local context = active_context()
+	local context = activeContext()
 	if not context then
 		return
 	end
@@ -114,7 +114,7 @@ plugin:addHook("Draw3D", function()
 end)
 
 plugin:addHook("DrawUI", function()
-	local context = active_context()
+	local context = activeContext()
 	if not context then
 		return
 	end
