@@ -70,6 +70,6 @@ Those concerns belong to `client` and `rs_integration`.
 
 ## Related Repositories
 
-- [`client`](https://github.com/SubRosaCustom/client): native client mod that hosts this Lua runtime
+- [`client`](https://github.com/SubRosaCustom/client): native client mod that hosts this Lua runtime, not public as of writing this as to prevent cheat development
 - [`rs_integration`](https://github.com/SubRosaCustom/rs_integration): server-side integration that syncs this repository to clients
 - [`RosaServerCore`](https://github.com/jpxs-intl/RosaServerCore): the closest upstream conceptual equivalent on the server side
