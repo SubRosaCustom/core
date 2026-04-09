@@ -451,6 +451,17 @@ enum.menu = {
 	requisition_world = 25,
 }
 
+enum.renderer = {}
+
+---@see renderer:drawTexture
+---@enum Enum.renderer.textureAlign
+enum.renderer.textureAlign = {
+	center_x = 0x1,
+	right = 0x2,
+	center_y = 0x4,
+	bottom = 0x8,
+}
+
 enum.mission = {}
 
 ---@see Mission.location

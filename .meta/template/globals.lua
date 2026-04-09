@@ -17,6 +17,18 @@ client = nil
 ---@type SrcRenderer
 renderer = nil
 
+---Horizontal center alignment flag for `renderer:drawTexture`.
+DRAW_TEXTURE_ALIGN_CENTER_X = 0x1
+---Right alignment flag for `renderer:drawTexture`.
+DRAW_TEXTURE_ALIGN_RIGHT = 0x2
+---Vertical center alignment flag for `renderer:drawTexture`.
+DRAW_TEXTURE_ALIGN_CENTER_Y = 0x4
+---Bottom alignment flag for `renderer:drawTexture`.
+DRAW_TEXTURE_ALIGN_BOTTOM = 0x8
+
+---@type table<string, integer>
+DrawTextureAlign = {}
+
 ---Sound helper API exposed by the client runtime.
 ---@type SrcSounds
 sounds = nil

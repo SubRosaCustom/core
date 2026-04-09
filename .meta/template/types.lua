@@ -52,6 +52,17 @@ do
 end
 
 do
+	---@class SrcPngImage
+	---@field atlas integer
+	---@field id integer
+	---@field width integer
+	---@field height integer
+	---@field path string
+	---@field isValid boolean
+	local SrcPngImage
+end
+
+do
 	---@class SrcRenderer
 	---@field enableHead boolean
 	---@field drawText fun(self: SrcRenderer, text: string, x: number, y: number, size: number, r: number, g: number, b: number, a: number, align: integer)
@@ -69,6 +80,8 @@ do
 	---@field flushDebugBatch fun(self: SrcRenderer)
 	---@field setDebugBatchTransform fun(self: SrcRenderer, pos: Vector, rot: RotMatrix)
 	---@field resetDebugBatchTransform fun(self: SrcRenderer)
+	---@field loadPng fun(self: SrcRenderer, path: string): SrcPngImage?
+	---@field drawTexture fun(self: SrcRenderer, image: SrcPngImage, x: number, y: number, width?: number, height?: number, r?: number, g?: number, b?: number, a?: number, flags?: integer): boolean
 	---@field loadCMO fun(self: SrcRenderer, name: string): integer?
 	---@field renderObject fun(self: SrcRenderer, modelId: integer, worldPos: Vector, worldRot: RotMatrix, colorPrimary?: integer, colorSecondary?: integer, flags?: integer)
 	local SrcRenderer
