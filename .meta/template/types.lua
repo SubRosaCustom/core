@@ -45,6 +45,13 @@ do
 end
 
 do
+	---@class SrcSounds
+	---@field loadSound fun(self: SrcSounds, path: string, maxDistance?: number): integer
+	---@field playSound3D fun(self: SrcSounds, soundId: integer, position: Vector, volume?: number, pitch?: number): boolean
+	local SrcSounds
+end
+
+do
 	---@class SrcRenderer
 	---@field enableHead boolean
 	---@field drawText fun(self: SrcRenderer, text: string, x: number, y: number, size: number, r: number, g: number, b: number, a: number, align: integer)

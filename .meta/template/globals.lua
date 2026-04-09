@@ -17,6 +17,10 @@ client = nil
 ---@type SrcRenderer
 renderer = nil
 
+---Sound helper API exposed by the client runtime.
+---@type SrcSounds
+sounds = nil
+
 ---@type SrcPlayersApi
 players = nil
 
