@@ -47,7 +47,8 @@ end
 do
 	---@class SrcSounds
 	---@field loadSound fun(self: SrcSounds, path: string, maxDistance?: number): integer
-	---@field playSound3D fun(self: SrcSounds, soundId: integer, position: Vector, volume?: number, pitch?: number): boolean
+	---@field playSound3D fun(self: SrcSounds, soundId: integer, position: Vector, volume?: number, pitch?: number): integer
+	---@field stopSound fun(self: SrcSounds, emitterId: integer)
 	local SrcSounds
 end
 
