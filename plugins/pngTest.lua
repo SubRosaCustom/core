@@ -2,7 +2,7 @@
 local plugin = ...
 plugin.name = "PNG Test"
 plugin.author = "Sub Rosa Custom"
-plugin.description = "Loads the jellybean PNG, renders it, and shows detailed runtime state for debugging."
+plugin.description = "Loads the jellybean texture, renders it, and shows detailed runtime state for debugging."
 
 local imagePath = "jellybean"
 local overlayX = 24
@@ -11,17 +11,22 @@ local textScale = 14
 local lineSpacing = 14
 local panelWidth = 420
 local panelHeight = 250
-local imageX = 760
-local imageY = 220
 local retryIntervalTicks = 60
+local worldPosition = Vector(2938.2, 25, 1538)
+local worldSize = 3.0
+local worldRotation = orientations.e
 
-local image = nil
+local texture = nil
 local lastLoadError = "not attempted"
 local loadAttempts = 0
 local logicTicks = 0
 local lastRetryTick = -1
 local lastDrawOk = false
-local textureAlignFlags = bit.bor(enum.renderer.textureAlign.center_x, enum.renderer.textureAlign.center_y)
+local textureAlignFlags = bit.bor(
+	enum.renderer.textureAlign.center_x,
+	enum.renderer.textureAlign.center_y
+)
+local worldTextureFlags = bit.bor(textureAlignFlags, 0x80)
 
 local function stringify(value)
 	if value == nil then
@@ -35,18 +40,18 @@ local function tryLoadImage()
 	lastRetryTick = logicTicks
 
 	local ok, result = pcall(function()
-		return renderer:loadPng(imagePath)
+		return Texture.loadFromFile(imagePath)
 	end)
 
 	if not ok then
-		image = nil
+		texture = nil
 		lastLoadError = tostring(result)
 		return false
 	end
 
-	image = result
-	if image == nil then
-		lastLoadError = "renderer:loadPng returned nil"
+	texture = result
+	if texture == nil then
+		lastLoadError = "Texture.loadFromFile returned nil"
 		return false
 	end
 
@@ -55,7 +60,7 @@ local function tryLoadImage()
 end
 
 local function shouldRetryLoad()
-	if image ~= nil then
+	if texture ~= nil then
 		return false
 	end
 
@@ -71,7 +76,7 @@ local function drawLine(text, x, y)
 end
 
 plugin:addEnableHandler(function()
-	image = nil
+	texture = nil
 	lastLoadError = "not attempted"
 	loadAttempts = 0
 	logicTicks = 0
@@ -85,6 +90,51 @@ plugin:addHook("Logic", function()
 
 	if shouldRetryLoad() then
 		tryLoadImage()
+	end
+end)
+
+plugin:addHook("Draw3D", function()
+	lastDrawOk = false
+	if not (texture and texture.isValid) then
+		return
+	end
+
+	local pushOk, pushErr = pcall(function()
+		renderer:pushWorldTransform(worldPosition, worldRotation)
+	end)
+
+	if not pushOk then
+		lastLoadError = "pushWorldTransform error: " .. tostring(pushErr)
+		return
+	end
+
+	local drawOk, drawResult = pcall(function()
+		return renderer:drawTexture(
+			texture,
+			0.0,
+			0.0,
+			worldSize,
+			worldSize,
+			1.0,
+			1.0,
+			1.0,
+			1.0,
+			worldTextureFlags
+		)
+	end)
+
+	local popOk, popErr = pcall(function()
+		renderer:popWorldTransform()
+	end)
+
+	lastDrawOk = drawOk and drawResult == true and popOk
+
+	if not drawOk then
+		lastLoadError = "drawTexture error: " .. tostring(drawResult)
+	elseif not popOk then
+		lastLoadError = "popWorldTransform error: " .. tostring(popErr)
+	else
+		lastLoadError = "none"
 	end
 end)
 
@@ -132,48 +182,11 @@ plugin:addHook("DrawUI", function()
 	drawLine("image.path: " .. stringify(image and image.path), x, y)
 	y = y + lineSpacing
 
-	lastDrawOk = false
-	if image and image.isValid then
-		renderer:drawRectangle2D(
-			imageX,
-			imageY,
-			math.max(image.width + 16, 64),
-			math.max(image.height + 16, 64),
-			0.08,
-			0.08,
-			0.08,
-			0.75
-		)
-
-		local drawOk, drawResult = pcall(function()
-				return renderer:drawTexture(
-					image,
-					imageX,
-					imageY,
-					image.width,
-					image.height,
-				1.0,
-				1.0,
-				1.0,
-				1.0,
-				textureAlignFlags
-			)
-		end)
-
-		lastDrawOk = drawOk and drawResult == true
-
-		if not drawOk then
-			lastLoadError = "drawTexture error: " .. tostring(drawResult)
-		else
-			lastLoadError = "none"
-		end
-	end
-
 	drawLine("drawTexture ok: " .. stringify(lastDrawOk), x, y)
 	y = y + lineSpacing
-	drawLine(
-		"draw center: (" .. stringify(imageX) .. ", " .. stringify(imageY) .. ")",
-		x,
-		y
-	)
+	drawLine("world pos: (" .. worldPosition.x .. ", " .. worldPosition.y .. ", " .. worldPosition.z .. ")", x, y)
+	y = y + lineSpacing
+	drawLine("world size: " .. stringify(worldSize), x, y)
+	y = y + lineSpacing
+	drawLine("world flags: " .. stringify(worldTextureFlags), x, y)
 end)
