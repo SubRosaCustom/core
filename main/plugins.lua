@@ -236,6 +236,10 @@ local function collectEntries(nameSpace)
 	return entries
 end
 
+local function plugin_key(nameSpace, stem)
+	return nameSpace .. ":" .. stem
+end
+
 local function shouldStartPluginEnabled(plug)
 	return not disabledPluginsMap[plug.fileName]
 end
@@ -250,12 +254,13 @@ local function discoverInNameSpace(nameSpace, isEnabledFunc)
 
 	local entries = collectEntries(nameSpace)
 	for stem, entry in pairs(entries) do
-		if not hook.plugins[stem] then
+		local key = plugin_key(nameSpace, stem)
+		if not hook.plugins[key] then
 			local plug = newPlugin(nameSpace, stem)
 			plug.entryPath = entry.path
 			plug.fullFileName = entry.fullFileName
 
-			hook.plugins[stem] = plug
+			hook.plugins[key] = plug
 			local isEnabled = isEnabledFunc(plug)
 
 			printScoped(string.format("Loading \27[30;1m%s.\27[0m%s", nameSpace, stem))
@@ -363,15 +368,14 @@ local function applyPatch(changedPaths)
 
 	for nameSpace, touchedNames in pairs(touched) do
 		for name, _ in pairs(touchedNames) do
-			local plug = hook.plugins[name]
+			local key = plugin_key(nameSpace, name)
+			local plug = hook.plugins[key]
 			local entry = entriesByNameSpace[nameSpace] and entriesByNameSpace[nameSpace][name] or nil
 
-			if plug and plug.nameSpace ~= nameSpace then
-				printScoped("Skipped patch for " .. nameSpace .. " " .. name .. " due namespace collision")
-			elseif not entry then
+			if not entry then
 				if plug then
 					plug:disable(false)
-					hook.plugins[name] = nil
+					hook.plugins[key] = nil
 					printScoped("Removed " .. nameSpace .. " " .. name)
 				end
 			elseif plug then
@@ -383,14 +387,14 @@ local function applyPatch(changedPaths)
 					printScoped("Reloaded " .. nameSpace .. " " .. name)
 				else
 					plug:disable(false)
-					hook.plugins[name] = nil
+					hook.plugins[key] = nil
 					printScoped("Removed " .. nameSpace .. " " .. name)
 				end
 			else
 				local newPlug = newPlugin(nameSpace, name)
 				newPlug.entryPath = entry.path
 				newPlug.fullFileName = entry.fullFileName
-				hook.plugins[name] = newPlug
+				hook.plugins[key] = newPlug
 
 				local ok = newPlug:load(shouldStartEnabled(nameSpace, newPlug), false)
 				if ok then

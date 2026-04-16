@@ -163,23 +163,25 @@ plugin:addHook("DrawUI", function()
 	y = y + lineSpacing
 	drawLine("lastLoadError: " .. stringify(lastLoadError), x, y)
 	y = y + lineSpacing
-	drawLine("image lua type: " .. type(image), x, y)
+	drawLine("texture lua type: " .. type(texture), x, y)
 	y = y + lineSpacing
-	drawLine("image tostring: " .. stringify(image), x, y)
+	drawLine("texture tostring: " .. stringify(texture), x, y)
 	y = y + lineSpacing
-	drawLine("image.class: " .. stringify(image and image.class), x, y)
+	drawLine("texture.class: " .. stringify(texture and texture.class), x, y)
 	y = y + lineSpacing
-	drawLine("image.isValid: " .. stringify(image and image.isValid), x, y)
+	drawLine("texture.index: " .. stringify(texture and texture.index), x, y)
 	y = y + lineSpacing
-	drawLine("image.atlas: " .. stringify(image and image.atlas), x, y)
+	drawLine("texture.isValid: " .. stringify(texture and texture.isValid), x, y)
 	y = y + lineSpacing
-	drawLine("image.id: " .. stringify(image and image.id), x, y)
+	drawLine("texture.width: " .. stringify(texture and texture.width), x, y)
 	y = y + lineSpacing
-	drawLine("image.width: " .. stringify(image and image.width), x, y)
+	drawLine("texture.height: " .. stringify(texture and texture.height), x, y)
 	y = y + lineSpacing
-	drawLine("image.height: " .. stringify(image and image.height), x, y)
+	drawLine("texture.glTextureID: " .. stringify(texture and texture.glTextureID), x, y)
 	y = y + lineSpacing
-	drawLine("image.path: " .. stringify(image and image.path), x, y)
+	drawLine("texture.minFilter: " .. stringify(texture and texture.minFilter), x, y)
+	y = y + lineSpacing
+	drawLine("texture.magFilter: " .. stringify(texture and texture.magFilter), x, y)
 	y = y + lineSpacing
 
 	drawLine("drawTexture ok: " .. stringify(lastDrawOk), x, y)

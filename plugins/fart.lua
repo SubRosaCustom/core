@@ -2,16 +2,19 @@
 local plugin = ...
 plugin.name = "Fart Sound Example"
 plugin.author = "Sub Rosa Custom"
-plugin.description = "Example plugin that loads a fart sound and replays it every 5 seconds."
+plugin.description = "Example plugin that loads a fart sound, replays it every 10 seconds, and stops it after 5 seconds."
 
 local sound_path = "fart.wav"
 local max_distance = 512.0
-local interval_ticks = 300
+local interval_ticks = 600
+local stop_after_ticks = 300
 local volume = 1.0
 local pitch = 1.0
 
 local loaded_sound_id = -1
+local active_emitter_id = -1
 local next_play_tick = nil
+local next_stop_tick = nil
 
 local function format_position(position)
 	return string.format("(%.2f, %.2f, %.2f)", position.x, position.y, position.z)
@@ -19,7 +22,9 @@ end
 
 local function reset_state()
 	loaded_sound_id = -1
+	active_emitter_id = -1
 	next_play_tick = nil
+	next_stop_tick = nil
 end
 
 local function get_play_position()
@@ -69,6 +74,27 @@ local function try_load_sound()
 	return true
 end
 
+local function try_stop_sound(current_tick)
+	if active_emitter_id < 0 then
+		plugin:warn(string.format("skipping stop at tick %d because no emitter is active", current_tick))
+		return
+	end
+
+	local ok, stop_err = pcall(
+		sounds.stopSound,
+		sounds,
+		active_emitter_id
+	)
+	if not ok then
+		plugin:warn(string.format("failed to stop fart emitter %d at tick %d: %s", active_emitter_id, current_tick, tostring(stop_err)))
+		return
+	end
+
+	plugin:print(string.format("stopped fart emitter %d at tick %d", active_emitter_id, current_tick))
+	active_emitter_id = -1
+	next_stop_tick = nil
+end
+
 local function try_play_sound(current_tick)
 	if loaded_sound_id < 0 then
 		plugin:warn(string.format("skipping play at tick %d because no sound is loaded", current_tick))
@@ -102,11 +128,20 @@ local function try_play_sound(current_tick)
 		return
 	end
 
-	if did_play then
-		plugin:print(string.format("played fart sound id %d at tick %d", loaded_sound_id, current_tick))
+	if type(did_play) == "number" and did_play >= 0 then
+		active_emitter_id = did_play
+		next_stop_tick = current_tick + stop_after_ticks
+		plugin:print(string.format(
+			"played fart sound id %d at tick %d with emitter %d; stop scheduled for tick %d",
+			loaded_sound_id,
+			current_tick,
+			active_emitter_id,
+			next_stop_tick
+		))
 	else
 		plugin:warn(string.format(
-			"playSound3D returned false for sound id %d at tick %d from %s %s",
+			"playSound3D returned invalid emitter '%s' for sound id %d at tick %d from %s %s",
+			tostring(did_play),
 			loaded_sound_id,
 			current_tick,
 			position_source,
@@ -139,6 +174,10 @@ plugin:addHook("Logic", function()
 	local current_tick = client.ticksSinceReset
 	if next_play_tick == nil then
 		next_play_tick = current_tick
+	end
+
+	if next_stop_tick ~= nil and current_tick >= next_stop_tick then
+		try_stop_sound(current_tick)
 	end
 
 	if current_tick < next_play_tick then
