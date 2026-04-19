@@ -54,6 +54,12 @@ Current runtime behavior uses config such as:
 
 If no persistent mode is already set, `defaultGameMode` becomes the initial mode.
 
+Plugin enablement persistence follows the RosaServerCore pattern:
+
+- synced plugin disable state is read from `disabledPlugins.json`
+- `rs_integration` can update that file and trigger an immediate SRC refresh
+- plugin-specific settings still live under `config.yml`
+
 ## Scope
 
 `core` owns client Lua behavior.

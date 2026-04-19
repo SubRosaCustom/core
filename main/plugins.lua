@@ -2,11 +2,49 @@
 
 local json = require("main.json")
 
+local disabled_plugins_file = "disabledPlugins.json"
+
 local function printScoped(...)
 	print("\27[34m[SRCC/Plugins]\27[0m " .. concatVarArgs("\t", ...))
 end
 
 local disabledPluginsMap = {}
+
+local function replaceDisabledPlugins(nextDisabledPluginsMap)
+	for name, _ in pairs(disabledPluginsMap) do
+		disabledPluginsMap[name] = nil
+	end
+
+	for name, _ in pairs(nextDisabledPluginsMap) do
+		disabledPluginsMap[name] = true
+	end
+end
+
+local function loadDisabledPlugins()
+	local source = __src_read_file(disabled_plugins_file)
+	if not source or source == "" then
+		replaceDisabledPlugins({})
+		return true
+	end
+
+	local ok, decoded = pcall(json.decode, source)
+	if not ok or type(decoded) ~= "table" then
+		printScoped(string.format("\27[33mFailed to parse %s", disabled_plugins_file))
+		return false
+	end
+
+	local nextDisabledPluginsMap = {}
+	for _, name in ipairs(decoded) do
+		if type(name) == "string" and name ~= "" then
+			nextDisabledPluginsMap[name] = true
+		end
+	end
+
+	replaceDisabledPlugins(nextDisabledPluginsMap)
+	return true
+end
+
+loadDisabledPlugins()
 
 ---@class PluginHookInfo
 ---@field func function
@@ -248,6 +286,21 @@ local function shouldStartModeEnabled(plug)
 	return plug.fileName == hook.persistentMode
 end
 
+local function reconcileDisabledPlugins()
+	for _, plug in pairs(hook.plugins) do
+		if plug.nameSpace == "plugins" then
+			local should_enable = shouldStartPluginEnabled(plug)
+			if should_enable and not plug.isEnabled then
+				plug:enable(false)
+				printScoped("Enabled plugin " .. plug.fileName)
+			elseif (not should_enable) and plug.isEnabled then
+				plug:disable(false)
+				printScoped("Disabled plugin " .. plug.fileName)
+			end
+		end
+	end
+end
+
 local function discoverInNameSpace(nameSpace, isEnabledFunc)
 	local numLoaded = 0
 	local numErrored = 0
@@ -345,7 +398,12 @@ end
 
 local function applyPatch(changedPaths)
 	local touched = {}
+	local disabled_plugins_changed = false
 	for _, path in ipairs(changedPaths) do
+		if path == disabled_plugins_file then
+			disabled_plugins_changed = true
+		end
+
 		local nameSpace, name = pluginInfoFromPath(path)
 		if nameSpace and name then
 			touched[nameSpace] = touched[nameSpace] or {}
@@ -402,6 +460,10 @@ local function applyPatch(changedPaths)
 				end
 			end
 		end
+	end
+
+	if disabled_plugins_changed and loadDisabledPlugins() then
+		reconcileDisabledPlugins()
 	end
 
 	discoverNewPlugins()
