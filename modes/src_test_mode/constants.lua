@@ -12,18 +12,20 @@ constants.default_config = {
 	confirm_scancode = 18, -- O
 	reject_scancode = 14, -- K
 	request_state_scancode = 20, -- Q
+	ui_toggle_scancode = 24, -- U
 	text_scale = 15.0,
 }
 
 constants.binds = {
-	select_prev = "showcase_select_prev",
-	select_next = "showcase_select_next",
-	select_up = "showcase_select_up",
-	select_down = "showcase_select_down",
-	interact = "showcase_interact",
-	confirm = "showcase_confirm",
-	reject = "showcase_reject",
-	request_state = "showcase_request_state",
+	select_prev = "src_test_mode_select_prev",
+	select_next = "src_test_mode_select_next",
+	select_up = "src_test_mode_select_up",
+	select_down = "src_test_mode_select_down",
+	interact = "src_test_mode_interact",
+	confirm = "src_test_mode_confirm",
+	reject = "src_test_mode_reject",
+	request_state = "src_test_mode_request_state",
+	ui_toggle = "src_test_mode_ui_toggle",
 }
 
 constants.events = {
@@ -37,9 +39,11 @@ constants.status_fail = 2
 
 constants.screen_width = 1024
 constants.screen_height = 576
+constants.overlay_width = 1078
+constants.overlay_height = 768
 
-constants.origin = Vector(1610.0, 23.95, 1192.0)
-constants.overview_spawn = Vector(1610.0, 24.20, 1182.0)
+constants.origin = Vector(1685.0, 33.75, 1521.0)
+constants.overview_spawn = Vector(1685.0, 34.0, 1521.0)
 constants.overview_rotation = orientations.n
 
 constants.station_width = 3.30
@@ -50,9 +54,12 @@ constants.station_label_height = 2.40
 constants.station_content_height = 1.10
 constants.station_row_z = 0.0
 
-constants.sound_duration_ticks = 220
+constants.sound_duration_ticks = 1204
 constants.state_request_interval = 180
 constants.state_timeout_ticks = 420
+constants.cutscene_fade_seconds = 0.5
+constants.cutscene_subtitle_y = 520
+constants.cutscene_look_target = Vector(1685.0, 35.6, 1521.0)
 
 constants.texture_flags = bit_lib.bor(
 	enum.renderer.textureAlign.center_x,
@@ -105,18 +112,14 @@ constants.stations = {
 	},
 	{
 		id = "sync",
-		label = "07 Mode + Sync",
+		label = "07 Sync Payload",
 		offset_x = 24.0,
 		offset_z = constants.station_row_z,
-		primary_item_id = "active_mode_showcase",
+		primary_item_id = "non_active_modes_still_sync",
 	},
 }
 
 constants.checklist = {
-	{
-		id = "active_mode_showcase",
-		label = "Active mode is showcase",
-	},
 	{
 		id = "non_active_modes_still_sync",
 		label = "Non-active mode files are still in sync payload",
@@ -152,6 +155,40 @@ constants.checklist = {
 	{
 		id = "debug_boxes_visible",
 		label = "Number 6 debug boxes are visible",
+	},
+}
+
+constants.pages = {
+	{
+		id = "checklist",
+		label = "Checklist",
+	},
+	{
+		id = "diagnostics",
+		label = "Diagnostics",
+	},
+}
+
+constants.cutscene_shots = {
+	{
+		id = "welcome",
+		text = "Welcome SRC Test Mode",
+		from_pos = Vector(1836.073975, 82.191696, 1503.246826),
+		to_pos = Vector(1527.095703, 50.891693, 1472.509888),
+		from_target = constants.cutscene_look_target,
+		to_target = constants.cutscene_look_target,
+		move_seconds = 3.0,
+		hold_seconds = 3.0,
+	},
+	{
+		id = "stations",
+		text = "Enter stations to test out features",
+		from_pos = Vector(1702.140503, 41.092140, 1532.355591),
+		to_pos = Vector(1654.632080, 41.092140, 1530.991333),
+		from_target = constants.cutscene_look_target,
+		to_target = constants.cutscene_look_target,
+		move_seconds = 3.0,
+		hold_seconds = 2.0,
 	},
 }
 

@@ -5,15 +5,235 @@ local state = {}
 
 local function push_log(context, text)
 	context.log_lines[#context.log_lines + 1] = tostring(text)
-	while #context.log_lines > 7 do
+	while #context.log_lines > 3 do
 		table.remove(context.log_lines, 1)
 	end
+end
+
+local function current_page(context)
+	return constants.pages[constants.wrap_index(context.page_index, #constants.pages)]
+end
+
+local function clone_vector(value)
+	return value and value.clone and value:clone() or nil
+end
+
+local function lerp_number(a, b, t)
+	return a + ((b - a) * t)
+end
+
+local function lerp_vector(a, b, t)
+	return Vector(
+		lerp_number(a.x, b.x, t),
+		lerp_number(a.y, b.y, t),
+		lerp_number(a.z, b.z, t)
+	)
+end
+
+local function smoothstep(t)
+	local clamped = math.max(0.0, math.min(1.0, t))
+	return clamped * clamped * (3.0 - (2.0 * clamped))
+end
+
+local function current_time_seconds()
+	return os.clock()
+end
+
+local function has_local_human()
+	return client and client.human and client.human.pos ~= nil
+end
+
+local function capture_camera(context)
+	if context.camera_captured or not client or not client.camera then
+		return
+	end
+
+	context.camera_captured = true
+	context.camera_pos = clone_vector(client.camera.pos)
+	context.camera_rot = client.camera.rot and client.camera.rot:clone() or nil
+	context.camera_fov = client.camera.fov
+end
+
+local function restore_camera(context)
+	if not context.camera_captured or not client or not client.camera then
+		return
+	end
+
+	if context.camera_pos then
+		client.camera.pos:set(context.camera_pos)
+	end
+	if context.camera_rot then
+		client.camera.rot:set(context.camera_rot)
+	end
+	if context.camera_fov then
+		client.camera.fov = context.camera_fov
+	end
+
+	context.camera_captured = false
+	context.camera_pos = nil
+	context.camera_rot = nil
+	context.camera_fov = nil
+end
+
+local function capture_hud_state(context)
+	if context.hud_state or not client or not client.hud then
+		return
+	end
+
+	local hud = client.hud
+	context.hud_state = {
+		inventory_panel = hud.inventory.panel.enabled,
+		inventory_equipment_panel = hud.inventory.equipmentPanel.enabled,
+		inventory_direction_widget = hud.inventory.directionWidget.enabled,
+		minimap = hud.minimap.enabled,
+		crosshair = hud.crosshair.enabled,
+		stamina_bar = hud.staminaBar.enabled,
+		move_mode_text = hud.moveModeText.enabled,
+		chat_mode_text = hud.chatModeText.enabled,
+		progress_bar = hud.progressBar.enabled,
+		phone_prompts = hud.phonePrompts.enabled,
+		midget_widget = hud.midgetWidget.enabled,
+		message_ring = hud.messageRing.enabled,
+		press_tab_hint = hud.pressTabHint.enabled,
+		money_text = hud.moneyText.enabled,
+		team_money_text = hud.teamMoneyText.enabled,
+		round_start_text = hud.roundStartText.enabled,
+		round_result_text = hud.roundResultText.enabled,
+		role_reveal_text = hud.roleRevealText.enabled,
+		savior_text = hud.saviorText.enabled,
+		chat_feed = hud.chatFeed.enabled,
+		map_toggle_hint = hud.mapToggleHint.enabled,
+	}
+end
+
+local function set_hud_hidden(context, hidden)
+	if not client or not client.hud then
+		return
+	end
+
+	local hud = client.hud
+	if hidden then
+		hud.inventory.panel.enabled = false
+		hud.inventory.equipmentPanel.enabled = false
+		hud.inventory.directionWidget.enabled = false
+		hud.minimap.enabled = false
+		hud.crosshair.enabled = false
+		hud.staminaBar.enabled = false
+		hud.moveModeText.enabled = false
+		hud.chatModeText.enabled = false
+		hud.progressBar.enabled = false
+		hud.phonePrompts.enabled = false
+		hud.midgetWidget.enabled = false
+		hud.messageRing.enabled = false
+		hud.pressTabHint.enabled = false
+		hud.moneyText.enabled = false
+		hud.teamMoneyText.enabled = false
+		hud.roundStartText.enabled = false
+		hud.roundResultText.enabled = false
+		hud.roleRevealText.enabled = false
+		hud.saviorText.enabled = false
+		hud.chatFeed.enabled = false
+		hud.mapToggleHint.enabled = false
+		return
+	end
+
+	if not context.hud_state then
+		return
+	end
+
+	hud.inventory.panel.enabled = context.hud_state.inventory_panel
+	hud.inventory.equipmentPanel.enabled = context.hud_state.inventory_equipment_panel
+	hud.inventory.directionWidget.enabled = context.hud_state.inventory_direction_widget
+	hud.minimap.enabled = context.hud_state.minimap
+	hud.crosshair.enabled = context.hud_state.crosshair
+	hud.staminaBar.enabled = context.hud_state.stamina_bar
+	hud.moveModeText.enabled = context.hud_state.move_mode_text
+	hud.chatModeText.enabled = context.hud_state.chat_mode_text
+	hud.progressBar.enabled = context.hud_state.progress_bar
+	hud.phonePrompts.enabled = context.hud_state.phone_prompts
+	hud.midgetWidget.enabled = context.hud_state.midget_widget
+	hud.messageRing.enabled = context.hud_state.message_ring
+	hud.pressTabHint.enabled = context.hud_state.press_tab_hint
+	hud.moneyText.enabled = context.hud_state.money_text
+	hud.teamMoneyText.enabled = context.hud_state.team_money_text
+	hud.roundStartText.enabled = context.hud_state.round_start_text
+	hud.roundResultText.enabled = context.hud_state.round_result_text
+	hud.roleRevealText.enabled = context.hud_state.role_reveal_text
+	hud.saviorText.enabled = context.hud_state.savior_text
+	hud.chatFeed.enabled = context.hud_state.chat_feed
+	hud.mapToggleHint.enabled = context.hud_state.map_toggle_hint
+end
+
+local function set_cutscene_pose(context, shot, position_t)
+	context.cutscene.current_pos = lerp_vector(shot.from_pos, shot.to_pos, position_t)
+	context.cutscene.current_target = lerp_vector(shot.from_target, shot.to_target, position_t)
+	context.cutscene.subtitle = shot.text
+end
+
+local function finish_cutscene(context)
+	context.cutscene.phase = "finished"
+	context.cutscene.overlay_alpha = 0.0
+	context.cutscene.current_pos = nil
+	context.cutscene.current_target = nil
+	context.cutscene.subtitle = ""
+	restore_camera(context)
+	set_hud_hidden(context, false)
+	push_log(context, "intro cutscene finished")
+end
+
+local function update_cutscene(context)
+	if context.cutscene.phase == "awaiting_spawn" then
+		capture_hud_state(context)
+		set_hud_hidden(context, true)
+		context.cutscene.overlay_alpha = 1.0
+		context.cutscene.subtitle = ""
+		if has_local_human() then
+			capture_camera(context)
+			context.cutscene.phase = "playing"
+			context.cutscene.start_time = current_time_seconds()
+			set_cutscene_pose(context, constants.cutscene_shots[1], 0.0)
+			push_log(context, "intro cutscene started")
+		end
+		return
+	end
+
+	if context.cutscene.phase ~= "playing" then
+		return
+	end
+
+	set_hud_hidden(context, true)
+
+	local elapsed = current_time_seconds() - context.cutscene.start_time
+	context.cutscene.overlay_alpha = 1.0 - math.min(1.0, elapsed / constants.cutscene_fade_seconds)
+
+	local timeline_cursor = 0
+	for i = 1, #constants.cutscene_shots do
+		local shot = constants.cutscene_shots[i]
+		local move_end = timeline_cursor + shot.move_seconds
+		local hold_end = move_end + shot.hold_seconds
+
+		if elapsed < move_end then
+			local shot_elapsed = elapsed - timeline_cursor
+			local progress = smoothstep(shot_elapsed / shot.move_seconds)
+			set_cutscene_pose(context, shot, progress)
+			return
+		end
+
+		if elapsed < hold_end then
+			set_cutscene_pose(context, shot, 1.0)
+			return
+		end
+
+		timeline_cursor = hold_end
+	end
+
+	finish_cutscene(context)
 end
 
 local function emit(event_name, ...)
 	local ok = emitServerEvent(event_name, ...)
 	if not ok then
-		plugin:warn(string.format("failed to emit showcase event '%s'", tostring(event_name)))
+		plugin:warn(string.format("failed to emit src_test_mode event '%s'", tostring(event_name)))
 	end
 	return ok
 end
@@ -57,7 +277,7 @@ local function request_state(context, reason)
 end
 
 local function station_blip_name(station)
-	return "showcase_station_" .. station.id
+	return "src_test_mode_station_" .. station.id
 end
 
 local function update_blips(context)
@@ -258,8 +478,10 @@ function state.new_context()
 
 	return {
 		local_ticks = 0,
+		page_index = 1,
 		selected_item_index = 1,
 		manual_status = manual_status,
+		ui_enabled = true,
 		focused_station_id = nil,
 		last_state_request_tick = -1,
 		last_server_state_tick = -1,
@@ -290,6 +512,19 @@ function state.new_context()
 			rotating_texture_drawn = false,
 			model_drawn = false,
 			debug_drawn = false,
+		},
+		camera_captured = false,
+		camera_pos = nil,
+		camera_rot = nil,
+		camera_fov = nil,
+		hud_state = nil,
+		cutscene = {
+			phase = "awaiting_spawn",
+			start_time = nil,
+			overlay_alpha = 1.0,
+			current_pos = nil,
+			current_target = nil,
+			subtitle = "",
 		},
 		log_lines = {},
 	}
@@ -365,6 +600,7 @@ function state.logic_tick(context)
 	context.frame_metrics.model_drawn = false
 	context.frame_metrics.debug_drawn = false
 
+	update_cutscene(context)
 	ensure_assets_loaded(context)
 	update_focus_station(context)
 
@@ -402,6 +638,10 @@ function state.logic_tick(context)
 end
 
 function state.interact(context)
+	if state.is_cutscene_active(context) then
+		return
+	end
+
 	local station = nil
 	if context.focused_station_id then
 		station = constants.find_station(context.focused_station_id)
@@ -414,6 +654,7 @@ function state.interact(context)
 
 	local checklist_index = constants.find_checklist_index(station.primary_item_id)
 	if checklist_index then
+		context.page_index = 1
 		context.selected_item_index = checklist_index
 	end
 
@@ -431,14 +672,47 @@ function state.interact(context)
 	end
 end
 
+function state.current_page(context)
+	return current_page(context)
+end
+
+function state.page_delta(context, delta)
+	if state.is_cutscene_active(context) then
+		return
+	end
+
+	context.page_index = constants.wrap_index(context.page_index + delta, #constants.pages)
+end
+
 function state.select_delta(context, delta)
+	if state.is_cutscene_active(context) then
+		return
+	end
+
+	if current_page(context).id ~= "checklist" then
+		return
+	end
+
 	context.selected_item_index = constants.wrap_index(
 		context.selected_item_index + delta,
 		#constants.checklist
 	)
 end
 
+function state.toggle_ui(context)
+	if state.is_cutscene_active(context) then
+		return
+	end
+
+	context.ui_enabled = not context.ui_enabled
+	push_log(context, context.ui_enabled and "ui shown" or "ui hidden")
+end
+
 function state.mark_selected(context, status)
+	if state.is_cutscene_active(context) then
+		return
+	end
+
 	local item = constants.checklist[context.selected_item_index]
 	if not item then
 		return
@@ -454,56 +728,56 @@ function state.manual_status_for_item(context, item_id)
 end
 
 function state.item_note(context, item_id)
-	if item_id == "active_mode_showcase" then
-		return string.format(
-			"mode=%s level=%s",
-			context.server.persistent_mode ~= "" and context.server.persistent_mode or "<none>",
-			context.server.loaded_level ~= "" and context.server.loaded_level or "<none>"
-		)
-	end
-
 	if item_id == "non_active_modes_still_sync" then
-		return string.format(
-			"mode_scripts=%d non_active=%d",
-			context.server.mode_script_count,
-			context.server.non_active_mode_script_count
-		)
+		return string.format("%d other-mode scripts reported", context.server.non_active_mode_script_count)
 	end
 
 	if item_id == "ui_texture_visible" then
-		return string.format("texture_loaded=%s", tostring(context.ui_texture and context.ui_texture ~= false))
+		if context.ui_texture and context.ui_texture ~= false then
+			if context.focused_station_id == "ui_texture" and context.frame_metrics.ui_texture_drawn then
+				return "Preview is visible"
+			end
+			return "Focus station 01 to preview it"
+		end
+		return "Texture failed to load"
 	end
 
 	if item_id == "world_texture_visible" then
-		return string.format("drawn=%s", tostring(context.frame_metrics.world_texture_drawn))
+		return context.frame_metrics.world_texture_drawn and "World quad drew this frame" or "World quad has not drawn yet"
 	end
 
 	if item_id == "rotating_texture_spinning" then
-		return string.format(
-			"drawn=%s angle=%.2f",
-			tostring(context.frame_metrics.rotating_texture_drawn),
-			context.rotation_angle
-		)
+		return context.frame_metrics.rotating_texture_drawn
+			and string.format("Spinning at %.2f rad", context.rotation_angle)
+			or "Rotating quad has not drawn yet"
 	end
 
 	if item_id == "sound_plays" then
-		return string.format("state=%s emitter=%s", context.sound_state, tostring(context.sound_emitter_id))
+		if context.sound_state == "playing" then
+			return string.format("Sound is playing on emitter %s", tostring(context.sound_emitter_id))
+		end
+		if context.sound_state == "ended" then
+			return "Playback reached the end"
+		end
+		return "Press E at station 04 to start it"
 	end
 
 	if item_id == "sound_stops_or_replays" then
-		return string.format("state=%s progress=%d%%", context.sound_state, math.floor(context.sound_progress * 100.0))
+		return string.format("State: %s", context.sound_state)
 	end
 
 	if item_id == "sound_progress_moves" then
-		return string.format("%d%%", math.floor(context.sound_progress * 100.0))
+		return string.format("Progress: %d%%", math.floor(context.sound_progress * 100.0))
 	end
 
 	if item_id == "model_visible" then
-		return string.format("model_id=%s", tostring(context.model_id))
+		return type(context.model_id) == "number" and context.model_id >= 0
+			and string.format("Model loaded as id %d", context.model_id)
+			or "Model failed to load"
 	end
 
 	if item_id == "debug_boxes_visible" then
-		return string.format("drawn=%s", tostring(context.frame_metrics.debug_drawn))
+		return context.frame_metrics.debug_drawn and "Debug lines and box drew" or "Debug draw has not happened yet"
 	end
 
 	return ""
@@ -521,27 +795,118 @@ function state.status_color(status)
 	return 0.85, 0.85, 0.85, 1.0
 end
 
+function state.is_cutscene_active(context)
+	return context.cutscene and context.cutscene.phase ~= "finished"
+end
+
+function state.cutscene_overlay_alpha(context)
+	if not state.is_cutscene_active(context) then
+		return 0.0
+	end
+
+	return context.cutscene.overlay_alpha or 0.0
+end
+
+function state.cutscene_subtitle(context)
+	if not state.is_cutscene_active(context) then
+		return ""
+	end
+
+	return context.cutscene.subtitle or ""
+end
+
+function state.apply_cutscene_camera(context)
+	if not state.is_cutscene_active(context) or context.cutscene.phase ~= "playing" then
+		return false
+	end
+
+	if not client or not client.camera or not context.cutscene.current_pos or not context.cutscene.current_target then
+		return false
+	end
+
+	client.camera.pos:set(context.cutscene.current_pos)
+	client.camera.rot:set(getRotMatrixLookingAt(context.cutscene.current_pos, context.cutscene.current_target))
+	return true
+end
+
 function state.focus_prompt(context)
 	if context.focused_station_id == "sound" then
 		if context.sound_state == "playing" then
-			return "Press E to stop sound"
+			return "E stops the sound  |  Left/Right switches pages  |  U hides UI"
 		end
-		return "Press E to play sound"
+		return "E plays the sound  |  Left/Right switches pages  |  U hides UI"
 	end
 
 	if context.focused_station_id == "sync" then
-		return "Press E to refresh sync diagnostics"
+		return "E refreshes sync data  |  Left/Right switches pages  |  U hides UI"
 	end
 
 	if context.focused_station_id then
-		return "Press E to jump to this checklist item"
+		return "E jumps to this checklist row  |  Left/Right switches pages  |  U hides UI"
 	end
 
-	return "Walk into a debug box and use O/K to mark the checklist"
+	return "Walk into a station  |  Left/Right switches pages  |  U hides UI"
+end
+
+function state.diagnostics_lines(context)
+	local lines = {}
+	local client_mode = hook and hook.persistentMode or ""
+	local station = nil
+	if context.focused_station_id then
+		station = constants.find_station(context.focused_station_id)
+	end
+
+	local sync_line = "Waiting for the server diagnostics reply"
+	if context.server_state_received and context.last_server_state_tick >= 0 then
+		local age = context.local_ticks - context.last_server_state_tick
+		if age <= 60 then
+			sync_line = string.format("Server diagnostics are fresh (%d ticks ago)", age)
+		else
+			sync_line = string.format("Last server diagnostics reply was %d ticks ago", age)
+		end
+	end
+
+	lines[#lines + 1] = string.format(
+		"Client mode loaded: %s",
+		client_mode ~= "" and client_mode or "none"
+	)
+	lines[#lines + 1] = string.format(
+		"Server persistent mode: %s",
+		context.server.persistent_mode ~= "" and context.server.persistent_mode or "none"
+	)
+	lines[#lines + 1] = sync_line
+	lines[#lines + 1] = string.format(
+		"Server sync generation: %d at tick %d",
+		context.server.sync_generation,
+		context.server.server_tick
+	)
+	lines[#lines + 1] = string.format(
+		"Payload size: %d scripts and %d assets",
+		context.server.script_count,
+		context.server.asset_count
+	)
+	lines[#lines + 1] = string.format(
+		"Mode breakdown: %d active-mode scripts, %d other-mode scripts",
+		context.server.mode_script_count,
+		context.server.non_active_mode_script_count
+	)
+	lines[#lines + 1] = string.format("Connected SRC clients: %d", context.server.client_count)
+	lines[#lines + 1] = string.format(
+		"Loaded server level: %s",
+		context.server.loaded_level ~= "" and context.server.loaded_level or "unknown"
+	)
+	lines[#lines + 1] = string.format(
+		"Current station: %s",
+		station and station.label or "none"
+	)
+
+	return lines
 end
 
 function state.shutdown(context)
 	stop_sound(context)
+	restore_camera(context)
+	set_hud_hidden(context, false)
 end
 
 return state

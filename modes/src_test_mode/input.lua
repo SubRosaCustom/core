@@ -13,11 +13,11 @@ end
 
 function input_mode.bind(context, state)
 	bind_toggle(constants.binds.select_prev, plugin.config.select_prev_scancode, function()
-		state.select_delta(context, -1)
+		state.page_delta(context, -1)
 	end)
 
 	bind_toggle(constants.binds.select_next, plugin.config.select_next_scancode, function()
-		state.select_delta(context, 1)
+		state.page_delta(context, 1)
 	end)
 
 	bind_toggle(constants.binds.select_up, plugin.config.select_up_scancode, function()
@@ -42,6 +42,10 @@ function input_mode.bind(context, state)
 
 	bind_toggle(constants.binds.request_state, plugin.config.request_state_scancode, function()
 		state.request_state(context, "keybind")
+	end)
+
+	bind_toggle(constants.binds.ui_toggle, plugin.config.ui_toggle_scancode, function()
+		state.toggle_ui(context)
 	end)
 end
 

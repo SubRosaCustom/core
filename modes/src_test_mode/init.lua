@@ -1,8 +1,8 @@
 ---@type Plugin
 local mode = ...
-mode.name = "Showcase"
+mode.name = "SRC Test Mode"
 mode.author = "Sub Rosa Custom"
-mode.description = "Side-by-side SRC showcase lane for mode, sync, rendering, sound, and checklist validation."
+mode.description = "Side-by-side SRC test lane for mode, sync, rendering, sound, and checklist validation."
 
 local constants = mode:require("constants")
 local state = mode:require("state")
@@ -11,10 +11,10 @@ local render = mode:require("render")
 
 mode.defaultConfig = constants.default_config
 
-local runtime = _G.__srcc_showcase_client_runtime or {
+local runtime = _G.__srcc_src_test_mode_client_runtime or {
 	context = nil,
 }
-_G.__srcc_showcase_client_runtime = runtime
+_G.__srcc_src_test_mode_client_runtime = runtime
 
 local function active_context()
 	if not mode.isEnabled then
@@ -80,6 +80,15 @@ mode:addHook("Logic", function()
 	end
 
 	state.logic_tick(context)
+end)
+
+mode:addHook("RenderFrame", function()
+	local context = active_context()
+	if not context then
+		return
+	end
+
+	state.apply_cutscene_camera(context)
 end)
 
 mode:addHook("Draw3D", function()
