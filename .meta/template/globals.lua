@@ -28,6 +28,10 @@ DRAW_TEXTURE_ALIGN_BOTTOM = 0x8
 
 ---@type table<string, integer>
 DrawTextureAlign = {}
+DrawTextureAlign.CENTER_X = DRAW_TEXTURE_ALIGN_CENTER_X
+DrawTextureAlign.RIGHT = DRAW_TEXTURE_ALIGN_RIGHT
+DrawTextureAlign.CENTER_Y = DRAW_TEXTURE_ALIGN_CENTER_Y
+DrawTextureAlign.BOTTOM = DRAW_TEXTURE_ALIGN_BOTTOM
 
 ---Sound helper API exposed by the client runtime.
 ---@type SrcSounds
@@ -66,12 +70,28 @@ physics = nil
 ---@type SrcMemory
 memory = nil
 
----@type table<string, integer>
+---@class HudAnchorGlobal
+---@field TOP_LEFT integer
+---@field TOP_CENTER integer
+---@field TOP_RIGHT integer
+---@field CENTER_LEFT integer
+---@field CENTER integer
+---@field CENTER_RIGHT integer
+---@field BOTTOM_LEFT integer
+---@field BOTTOM_CENTER integer
+---@field BOTTOM_RIGHT integer
+---@type HudAnchorGlobal
 HudAnchor = {}
 
 ---The active configuration table loaded from config.yml.
 ---@type table
 config = {}
+
+---Texture helper/class table exposed by the client runtime.
+---@class TextureGlobal
+---@field new fun(path: string): TextureDescriptor?
+---@field loadFromFile fun(path: string): TextureDescriptor?
+Texture = {}
 
 ---Load and apply the config file, then run the ConfigLoaded hook.
 ---@param fileName? string Path to the config file. Defaults to "config.yml".

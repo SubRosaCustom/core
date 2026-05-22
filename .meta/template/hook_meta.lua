@@ -7,6 +7,7 @@
 
 ---@alias hooks.ConfigLoaded fun(isReload: boolean): HookReturn
 ---@alias hooks.Draw3D fun(): HookReturn
+---@alias hooks.DrawModels fun(): HookReturn
 ---@alias hooks.DrawHuman fun(human: Human): HookReturn
 ---@alias hooks.DrawHumanLabels fun(human: Human): HookReturn
 ---@alias hooks.DrawMapMarkers fun(): HookReturn

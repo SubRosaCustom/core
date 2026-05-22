@@ -28,6 +28,7 @@
 ---@field add fun(eventName: "DrawMapMenu", name: string, func: hooks.DrawMapMenu)
 ---@field add fun(eventName: "DrawMenuItems", name: string, func: hooks.DrawMenuItems)
 ---@field add fun(eventName: "Draw3D", name: string, func: hooks.Draw3D)
+---@field add fun(eventName: "DrawModels", name: string, func: hooks.DrawModels)
 ---@field add fun(eventName: "WriteClientData", name: string, func: hooks.WriteClientData)
 ---@field add fun(eventName: "ExitGameCall", name: string, func: hooks.ExitGameCall)
 ---@field add fun(eventName: "PlayerControlHandler", name: string, func: hooks.PlayerControlHandler)
@@ -60,6 +61,7 @@ local _knownEngineEvents = {
 	DrawMapMenu = true,
 	DrawMenuItems = true,
 	Draw3D = true,
+	DrawModels = true,
 	ExitGameCall = true,
 	PlayerControlHandler = true,
 	PostPlayerControlHandler = true,
