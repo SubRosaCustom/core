@@ -2,25 +2,25 @@
 
 require("main.util")
 require("main.hook")
-local pluginsRuntime = require("main.plugins")
+local plugins_runtime = require("main.plugins")
 require("main.input")
 require("main.blips")
 require("main.enum")
 require("main.dataTyper")
 require("main.gameUtil")
-local eventCodec = require("main.eventCodec")
+local event_codec = require("main.eventCodec")
 
 local yaml = require("main.yaml")
-local unpackFn = table.unpack or unpack
+local unpack_fn = table.unpack or unpack
 
-local hasConfigLoadedOnce = false
+local has_config_loaded_once = false
 
 config = {
 	plugins = {},
 }
 
-function loadConfig(fileName)
-	local path = fileName or "config.yml"
+function loadConfig(file_name)
+	local path = file_name or "config.yml"
 	local source = __src_read_file(path)
 
 	if source and source ~= "" then
@@ -45,49 +45,73 @@ function loadConfig(fileName)
 		end
 	end
 
-	hook.run("ConfigLoaded", hasConfigLoadedOnce)
-	hasConfigLoadedOnce = true
+	hook.run("ConfigLoaded", has_config_loaded_once)
+	has_config_loaded_once = true
 end
 
-local serverEventHandlers = {}
-local serverEventNamesByHash = {}
+local server_event_handlers = {}
+local server_event_names_by_hash = {}
 
 function onServerEvent(name, fn)
 	assert(type(name) == "string" and name ~= "", "onServerEvent(name, fn): name must be non-empty string")
 	assert(type(fn) == "function", "onServerEvent(name, fn): fn must be function")
 
-	local hash = eventCodec.hashName(name)
-	local existingName = serverEventNamesByHash[hash]
-	if existingName and existingName ~= name then
-		error(string.format("onServerEvent hash collision: '%s' conflicts with '%s'", name, existingName))
+	local hash = event_codec.hashName(name)
+	local existing_name = server_event_names_by_hash[hash]
+	if existing_name and existing_name ~= name then
+		error(string.format("onServerEvent hash collision: '%s' conflicts with '%s'", name, existing_name))
 	end
-	serverEventNamesByHash[hash] = name
+	server_event_names_by_hash[hash] = name
 
-	if not serverEventHandlers[hash] then
-		serverEventHandlers[hash] = {}
+	local owner, registration_phase = plugins_runtime._get_server_event_registration()
+	local handlers = server_event_handlers
+	if owner then
+		if registration_phase == "activation" then
+			handlers = owner._active_server_event_handlers
+		else
+			handlers = owner._server_event_handlers
+		end
+	end
+	if not handlers[hash] then
+		handlers[hash] = {}
 	end
 
-	table.insert(serverEventHandlers[hash], fn)
+	table.insert(handlers[hash], fn)
 end
 
 function emitServerEvent(name, ...)
 	assert(type(name) == "string" and name ~= "", "emitServerEvent(name, ...): name must be non-empty string")
-	local hash = eventCodec.hashName(name)
-	local existingName = serverEventNamesByHash[hash]
-	if existingName and existingName ~= name then
-		error(string.format("emitServerEvent hash collision: '%s' conflicts with '%s'", name, existingName))
+	local hash = event_codec.hashName(name)
+	local existing_name = server_event_names_by_hash[hash]
+	if existing_name and existing_name ~= name then
+		error(string.format("emitServerEvent hash collision: '%s' conflicts with '%s'", name, existing_name))
 	end
-	serverEventNamesByHash[hash] = name
+	server_event_names_by_hash[hash] = name
 
-	local argsBytes, encodeErr = eventCodec.encodeArgs(...)
-	assert(argsBytes ~= nil, "emitServerEvent(name, ...): " .. tostring(encodeErr))
+	local args_bytes, encode_error = event_codec.encodeArgs(...)
+	assert(args_bytes ~= nil, "emitServerEvent(name, ...): " .. tostring(encode_error))
 
-	return __src_emit_server_event(name, hash, argsBytes)
+	return __src_emit_server_event(name, hash, args_bytes)
 end
 
-function __src_dispatch_server_event(hash, argsBytes)
-	local handlers = serverEventHandlers[hash]
-	if not handlers or #handlers == 0 then
+function __src_dispatch_server_event(hash, args_bytes)
+	local handlers = {}
+	for _, fn in ipairs(server_event_handlers[hash] or {}) do
+		table.insert(handlers, fn)
+	end
+
+	for _, plug in pairs(hook.plugins) do
+		if plug.isEnabled then
+			for _, fn in ipairs(plug._server_event_handlers[hash] or {}) do
+				table.insert(handlers, fn)
+			end
+			for _, fn in ipairs(plug._active_server_event_handlers[hash] or {}) do
+				table.insert(handlers, fn)
+			end
+		end
+	end
+
+	if #handlers == 0 then
 		return {
 			status = "no_handler",
 			handled = 0,
@@ -96,7 +120,7 @@ function __src_dispatch_server_event(hash, argsBytes)
 		}
 	end
 
-	local args = eventCodec.decodeArgs(argsBytes)
+	local args = event_codec.decodeArgs(args_bytes)
 	if not args then
 		return {
 			status = "decode_error",
@@ -108,14 +132,14 @@ function __src_dispatch_server_event(hash, argsBytes)
 
 	local handled = 0
 	local errors = 0
-	local firstError = nil
+	local first_error = nil
 
 	for _, fn in ipairs(handlers) do
-		local ok, err = pcall(fn, unpackFn(args, 1, args.n))
+		local ok, err = pcall(fn, unpack_fn(args, 1, args.n))
 		if not ok then
 			errors = errors + 1
-			if not firstError then
-				firstError = tostring(err)
+			if not first_error then
+				first_error = tostring(err)
 			end
 			print("[SRCC/Event] " .. tostring(err))
 		else
@@ -128,7 +152,7 @@ function __src_dispatch_server_event(hash, argsBytes)
 			status = "handler_error",
 			handled = handled,
 			errors = errors,
-			error = firstError or "handler error",
+			error = first_error or "handler error",
 		}
 	end
 
@@ -139,10 +163,10 @@ function __src_dispatch_server_event(hash, argsBytes)
 	}
 end
 
-blob = eventCodec.blob
+blob = event_codec.blob
 
-function __src_dispatch_hook(eventName, ...)
-	return hook.run(eventName, ...)
+function __src_dispatch_hook(event_name, ...)
+	return hook.run(event_name, ...)
 end
 
 function __src_dispatch_keybind(scancode, state)
@@ -151,8 +175,8 @@ function __src_dispatch_keybind(scancode, state)
 	end
 end
 
-function __src_apply_plugin_patch(changedPaths)
-	return pluginsRuntime.applyPatch(changedPaths)
+function __src_apply_plugin_patch(changed_paths)
+	return plugins_runtime.applyPatch(changed_paths)
 end
 
 loadConfig()

@@ -50,16 +50,16 @@ end
 ---@return Vector posB The second point of the line.
 function getEyeLine(man, distance)
 	local body = man:getRigidBody(3)
-	local posA = body.pos:clone()
+	local position_a = body.pos:clone()
 
 	local yaw = man.viewYaw - math.pi / 2
 	local pitch = -man.viewPitch
 
-	local posB = Vector(math.cos(yaw) * math.cos(pitch), math.sin(pitch), math.sin(yaw) * math.cos(pitch))
-	posB:mult(distance)
-	posB:add(posA)
+	local position_b = Vector(math.cos(yaw) * math.cos(pitch), math.sin(pitch), math.sin(yaw) * math.cos(pitch))
+	position_b:mult(distance)
+	position_b:add(position_a)
 
-	return posA, posB
+	return position_a, position_b
 end
 
 ---Find a single player represented by an input.
@@ -67,31 +67,31 @@ end
 ---@param input string Part of a player name or a phone number (with or without a dash).
 ---@return Player player The only player represented by the input.
 function findOnePlayer(input)
-	local allPlayers = players.getNonBots()
+	local all_players = players.getNonBots()
 
-	local phoneNumber = undashPhoneNumber(input)
-	if phoneNumber then
-		for _, ply in ipairs(allPlayers) do
-			if ply.phoneNumber == phoneNumber then
+	local phone_number = undashPhoneNumber(input)
+	if phone_number then
+		for _, ply in ipairs(all_players) do
+			if ply.phoneNumber == phone_number then
 				return ply
 			end
 		end
 	end
 
-	local lastFound
+	local last_found
 	input = input:lower()
 
-	for _, ply in ipairs(allPlayers) do
+	for _, ply in ipairs(all_players) do
 		if ply.name:lower():find(input) then
-			if lastFound ~= nil then
+			if last_found ~= nil then
 				error("Multiple players found, be more specific")
 			end
-			lastFound = ply
+			last_found = ply
 		end
 	end
 
-	if lastFound then
-		return lastFound
+	if last_found then
+		return last_found
 	end
 
 	error("Player not found")
@@ -102,31 +102,31 @@ end
 ---@param input string Part of a player name or a phone number (with or without a dash).
 ---@return Account account The only account represented by the input.
 function findOneAccount(input)
-	local allAccounts = accounts.getAll()
+	local all_accounts = accounts.getAll()
 
-	local phoneNumber = undashPhoneNumber(input)
-	if phoneNumber then
-		for _, acc in ipairs(allAccounts) do
-			if acc.phoneNumber == phoneNumber then
+	local phone_number = undashPhoneNumber(input)
+	if phone_number then
+		for _, acc in ipairs(all_accounts) do
+			if acc.phoneNumber == phone_number then
 				return acc
 			end
 		end
 	end
 
-	local lastFound
+	local last_found
 	input = input:lower()
 
-	for _, acc in ipairs(allAccounts) do
+	for _, acc in ipairs(all_accounts) do
 		if acc.name:lower():find(input) then
-			if lastFound ~= nil then
+			if last_found ~= nil then
 				error("Multiple accounts found, be more specific")
 			end
-			lastFound = acc
+			last_found = acc
 		end
 	end
 
-	if lastFound then
-		return lastFound
+	if last_found then
+		return last_found
 	end
 
 	error("Account not found")

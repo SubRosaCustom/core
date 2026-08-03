@@ -4,29 +4,29 @@ plugin.name = "PNG Test"
 plugin.author = "Sub Rosa Custom"
 plugin.description = "Loads the jellybean texture, renders it, and shows detailed runtime state for debugging."
 
-local imagePath = "jellybean"
-local overlayX = 24
-local overlayY = 24
-local textScale = 14
-local lineSpacing = 14
-local panelWidth = 420
-local panelHeight = 250
-local retryIntervalTicks = 60
-local worldPosition = Vector(2938.2, 25, 1538)
-local worldSize = 3.0
-local worldRotation = orientations.e
+local image_path = "jellybean"
+local overlay_x = 24
+local overlay_y = 24
+local text_scale = 14
+local line_spacing = 14
+local panel_width = 420
+local panel_height = 250
+local retry_interval_ticks = 60
+local world_position = Vector(2938.2, 25, 1538)
+local world_size = 3.0
+local world_rotation = orientations.e
 
 local texture = nil
-local lastLoadError = "not attempted"
-local loadAttempts = 0
-local logicTicks = 0
-local lastRetryTick = -1
-local lastDrawOk = false
-local textureAlignFlags = bit.bor(
+local last_load_error = "not attempted"
+local load_attempts = 0
+local logic_ticks = 0
+local last_retry_tick = -1
+local last_draw_ok = false
+local texture_align_flags = bit.bor(
 	enum.renderer.textureAlign.center_x,
 	enum.renderer.textureAlign.center_y
 )
-local worldTextureFlags = bit.bor(textureAlignFlags, 0x80)
+local world_texture_flags = bit.bor(texture_align_flags, 0x80)
 
 local function stringify(value)
 	if value == nil then
@@ -35,160 +35,160 @@ local function stringify(value)
 	return tostring(value)
 end
 
-local function tryLoadImage()
-	loadAttempts = loadAttempts + 1
-	lastRetryTick = logicTicks
+local function try_load_image()
+	load_attempts = load_attempts + 1
+	last_retry_tick = logic_ticks
 
 	local ok, result = pcall(function()
-		return Texture.loadFromFile(imagePath)
+		return Texture.loadFromFile(image_path)
 	end)
 
 	if not ok then
 		texture = nil
-		lastLoadError = tostring(result)
+		last_load_error = tostring(result)
 		return false
 	end
 
 	texture = result
 	if texture == nil then
-		lastLoadError = "Texture.loadFromFile returned nil"
+		last_load_error = "Texture.loadFromFile returned nil"
 		return false
 	end
 
-	lastLoadError = "none"
+	last_load_error = "none"
 	return true
 end
 
-local function shouldRetryLoad()
+local function should_retry_load()
 	if texture ~= nil then
 		return false
 	end
 
-	if lastRetryTick < 0 then
+	if last_retry_tick < 0 then
 		return true
 	end
 
-	return (logicTicks - lastRetryTick) >= retryIntervalTicks
+	return (logic_ticks - last_retry_tick) >= retry_interval_ticks
 end
 
-local function drawLine(text, x, y)
-	renderer:drawText(text, x, y, textScale, 1.0, 1.0, 1.0, 1.0, 0x20)
+local function draw_line(text, x, y)
+	renderer:drawText(text, x, y, text_scale, 1.0, 1.0, 1.0, 1.0, 0x20)
 end
 
 plugin:addEnableHandler(function()
 	texture = nil
-	lastLoadError = "not attempted"
-	loadAttempts = 0
-	logicTicks = 0
-	lastRetryTick = -1
-	lastDrawOk = false
-	tryLoadImage()
+	last_load_error = "not attempted"
+	load_attempts = 0
+	logic_ticks = 0
+	last_retry_tick = -1
+	last_draw_ok = false
+	try_load_image()
 end)
 
 plugin:addHook("Logic", function()
-	logicTicks = logicTicks + 1
+	logic_ticks = logic_ticks + 1
 
-	if shouldRetryLoad() then
-		tryLoadImage()
+	if should_retry_load() then
+		try_load_image()
 	end
 end)
 
 plugin:addHook("Draw3D", function()
-	lastDrawOk = false
+	last_draw_ok = false
 	if not (texture and texture.isValid) then
 		return
 	end
 
-	local pushOk, pushErr = pcall(function()
-		renderer:pushWorldTransform(worldPosition, worldRotation)
+	local push_ok, push_error = pcall(function()
+		renderer:pushWorldTransform(world_position, world_rotation)
 	end)
 
-	if not pushOk then
-		lastLoadError = "pushWorldTransform error: " .. tostring(pushErr)
+	if not push_ok then
+		last_load_error = "pushWorldTransform error: " .. tostring(push_error)
 		return
 	end
 
-	local drawOk, drawResult = pcall(function()
+	local draw_ok, draw_result = pcall(function()
 		return renderer:drawTexture(
 			texture,
 			0.0,
 			0.0,
-			worldSize,
-			worldSize,
+			world_size,
+			world_size,
 			1.0,
 			1.0,
 			1.0,
 			1.0,
-			worldTextureFlags
+			world_texture_flags
 		)
 	end)
 
-	local popOk, popErr = pcall(function()
+	local pop_ok, pop_error = pcall(function()
 		renderer:popWorldTransform()
 	end)
 
-	lastDrawOk = drawOk and drawResult == true and popOk
+	last_draw_ok = draw_ok and draw_result == true and pop_ok
 
-	if not drawOk then
-		lastLoadError = "drawTexture error: " .. tostring(drawResult)
-	elseif not popOk then
-		lastLoadError = "popWorldTransform error: " .. tostring(popErr)
+	if not draw_ok then
+		last_load_error = "drawTexture error: " .. tostring(draw_result)
+	elseif not pop_ok then
+		last_load_error = "popWorldTransform error: " .. tostring(pop_error)
 	else
-		lastLoadError = "none"
+		last_load_error = "none"
 	end
 end)
 
 plugin:addHook("DrawUI", function()
-	local x = overlayX
-	local y = overlayY
+	local x = overlay_x
+	local y = overlay_y
 
 	renderer:drawRectangle2D(
 		x - 8,
 		y - 8,
-		panelWidth,
-		panelHeight,
+		panel_width,
+		panel_height,
 		0.0,
 		0.0,
 		0.0,
 		0.55
 	)
 
-	drawLine("PNG Test", x, y)
-	y = y + lineSpacing
-	drawLine("requestedPath: " .. stringify(imagePath), x, y)
-	y = y + lineSpacing
-	drawLine("logicTicks: " .. stringify(logicTicks), x, y)
-	y = y + lineSpacing
-	drawLine("loadAttempts: " .. stringify(loadAttempts), x, y)
-	y = y + lineSpacing
-	drawLine("lastLoadError: " .. stringify(lastLoadError), x, y)
-	y = y + lineSpacing
-	drawLine("texture lua type: " .. type(texture), x, y)
-	y = y + lineSpacing
-	drawLine("texture tostring: " .. stringify(texture), x, y)
-	y = y + lineSpacing
-	drawLine("texture.class: " .. stringify(texture and texture.class), x, y)
-	y = y + lineSpacing
-	drawLine("texture.index: " .. stringify(texture and texture.index), x, y)
-	y = y + lineSpacing
-	drawLine("texture.isValid: " .. stringify(texture and texture.isValid), x, y)
-	y = y + lineSpacing
-	drawLine("texture.width: " .. stringify(texture and texture.width), x, y)
-	y = y + lineSpacing
-	drawLine("texture.height: " .. stringify(texture and texture.height), x, y)
-	y = y + lineSpacing
-	drawLine("texture.glTextureID: " .. stringify(texture and texture.glTextureID), x, y)
-	y = y + lineSpacing
-	drawLine("texture.minFilter: " .. stringify(texture and texture.minFilter), x, y)
-	y = y + lineSpacing
-	drawLine("texture.magFilter: " .. stringify(texture and texture.magFilter), x, y)
-	y = y + lineSpacing
+	draw_line("PNG Test", x, y)
+	y = y + line_spacing
+	draw_line("requestedPath: " .. stringify(image_path), x, y)
+	y = y + line_spacing
+	draw_line("logicTicks: " .. stringify(logic_ticks), x, y)
+	y = y + line_spacing
+	draw_line("loadAttempts: " .. stringify(load_attempts), x, y)
+	y = y + line_spacing
+	draw_line("lastLoadError: " .. stringify(last_load_error), x, y)
+	y = y + line_spacing
+	draw_line("texture lua type: " .. type(texture), x, y)
+	y = y + line_spacing
+	draw_line("texture tostring: " .. stringify(texture), x, y)
+	y = y + line_spacing
+	draw_line("texture.class: " .. stringify(texture and texture.class), x, y)
+	y = y + line_spacing
+	draw_line("texture.index: " .. stringify(texture and texture.index), x, y)
+	y = y + line_spacing
+	draw_line("texture.isValid: " .. stringify(texture and texture.isValid), x, y)
+	y = y + line_spacing
+	draw_line("texture.width: " .. stringify(texture and texture.width), x, y)
+	y = y + line_spacing
+	draw_line("texture.height: " .. stringify(texture and texture.height), x, y)
+	y = y + line_spacing
+	draw_line("texture.glTextureID: " .. stringify(texture and texture.glTextureID), x, y)
+	y = y + line_spacing
+	draw_line("texture.minFilter: " .. stringify(texture and texture.minFilter), x, y)
+	y = y + line_spacing
+	draw_line("texture.magFilter: " .. stringify(texture and texture.magFilter), x, y)
+	y = y + line_spacing
 
-	drawLine("drawTexture ok: " .. stringify(lastDrawOk), x, y)
-	y = y + lineSpacing
-	drawLine("world pos: (" .. worldPosition.x .. ", " .. worldPosition.y .. ", " .. worldPosition.z .. ")", x, y)
-	y = y + lineSpacing
-	drawLine("world size: " .. stringify(worldSize), x, y)
-	y = y + lineSpacing
-	drawLine("world flags: " .. stringify(worldTextureFlags), x, y)
+	draw_line("drawTexture ok: " .. stringify(last_draw_ok), x, y)
+	y = y + line_spacing
+	draw_line("world pos: (" .. world_position.x .. ", " .. world_position.y .. ", " .. world_position.z .. ")", x, y)
+	y = y + line_spacing
+	draw_line("world size: " .. stringify(world_size), x, y)
+	y = y + line_spacing
+	draw_line("world flags: " .. stringify(world_texture_flags), x, y)
 end)
