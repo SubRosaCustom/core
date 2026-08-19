@@ -39,8 +39,11 @@
 ---Called when the fullscreen map menu draws its text.
 ---@alias hooks.DrawMapMenu fun(): HookReturn
 
----Called when in-game menu items are drawn. Use for renderer.menu widgets.
+---Called when in-game menu items are drawn. Use for renderer.menu widgets and scrollable panels.
 ---@alias hooks.DrawMenuItems fun(): HookReturn
+
+---Called after in-game menu items are drawn. Use for persistent 2D overlays.
+---@alias hooks.PostDrawMenuItems fun(): HookReturn
 
 ---Called before the game draws a player's menus (world/team menus).
 ---The return value is ignored; the game's own menu drawing always runs.

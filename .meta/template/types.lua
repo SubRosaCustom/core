@@ -346,7 +346,7 @@ do
 	---@class SrcRenderer
 	---@field textFont NativeFont The font used by drawText. Must come from the fonts[] table and be loaded.
 	---@field enableHead boolean Whether the first person head/body is rendered.
-	---@field menu SrcRendererMenu 🔒 In-game menu widget API. Only usable inside DrawMenuItems.
+	---@field menu SrcRendererMenu 🔒 In-game menu widget API. Only usable inside DrawMenuItems or PostDrawMenuItems.
 	local SrcRenderer
 
 	---Draw text on the screen.
@@ -568,7 +568,7 @@ end
 
 do
 	---In-game menu widget API; accessed through renderer.menu.
-	---Only usable inside the DrawMenuItems hook.
+	---Only usable inside the DrawMenuItems or PostDrawMenuItems hook.
 	---Widget layout is controlled with the nextMenuItem* fields before each call.
 	---⚠️ checkbox, intSlider, floatSlider and comboBox are called with a dot
 	---(renderer.menu.checkbox(...)), the rest with a colon (renderer.menu:button(...)).
@@ -578,11 +578,24 @@ do
 	---@field nextMenuItemPosY number Screen Y position of the next menu item.
 	---@field nextMenuItemSizeX number Width of the next menu item.
 	---@field nextMenuItemSizeY number Height of the next menu item.
+	---@field textScale number 🔒 Active native menu text scale.
+	---Native menu widgets and menu:text drawn between these calls are clipped and scroll with the panel.
+	---@field beginScrollablePanel fun(label: string, x: number, y: number, width: number, height: number): boolean Open a native scrollable panel. Returns false when the native panel table is full.
+	---@field endScrollablePanel fun(): boolean Close the current native scrollable panel. Returns whether its close button was pressed.
 	---@field checkbox fun(label: string, value: boolean): boolean, boolean Draw a checkbox. Returns the new value and whether it changed.
 	---@field intSlider fun(label: string, value: integer, min: integer, max: integer): integer, boolean Draw an integer slider. Returns the new value and whether it changed.
 	---@field floatSlider fun(label: string, value: number, min: number, max: number): number, boolean Draw a float slider. Returns the new value and whether it changed. Throws on platforms where it is not available yet.
 	---@field comboBox fun(label: string, selectedIndex: integer, options: string[]): integer, boolean Draw a combo box. Returns the new selected index and whether it changed.
 	local SrcRendererMenu
+
+	---Measure text using the active native menu font and text scale.
+	---@param text string
+	---@return number width Width in screen pixels.
+	function SrcRendererMenu:measureTextWidth(text) end
+
+	---Draw a native menu text label inside the current panel or menu layout.
+	---@param label string Text to draw. Max length 255.
+	function SrcRendererMenu:text(label) end
 
 	---Draw a button.
 	---@param label string The button label. Max length 255.
