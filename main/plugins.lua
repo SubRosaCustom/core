@@ -83,6 +83,7 @@ load_disabled_plugins()
 ---@field addHook fun(self: Plugin, eventName: "DrawHumanLabels", func: hooks.DrawHumanLabels, options?: PluginHookOptions)
 ---@field addHook fun(self: Plugin, eventName: "DrawMapMenu", func: hooks.DrawMapMenu, options?: PluginHookOptions)
 ---@field addHook fun(self: Plugin, eventName: "DrawMenuItems", func: hooks.DrawMenuItems, options?: PluginHookOptions)
+---@field addHook fun(self: Plugin, eventName: "PostDrawMenuItems", func: hooks.PostDrawMenuItems, options?: PluginHookOptions)
 ---@field addHook fun(self: Plugin, eventName: "Draw3D", func: hooks.Draw3D, options?: PluginHookOptions)
 ---@field addHook fun(self: Plugin, eventName: "DrawModels", func: hooks.DrawModels, options?: PluginHookOptions)
 ---@field addHook fun(self: Plugin, eventName: "WriteClientData", func: hooks.WriteClientData, options?: PluginHookOptions)
@@ -280,29 +281,25 @@ function plugin:load(is_enabled, is_reload)
 end
 
 function plugin:reload()
-	local key = self.nameSpace .. ":" .. self.fileName
-	local replacement = new_plugin(self.nameSpace, self.fileName)
-	local was_enabled = self.isEnabled
+	local is_enabled = self.isEnabled
 
-	replacement.entryPath = self.entryPath
-	replacement.fullFileName = self.fullFileName
-	if not replacement:load(false, true) then
-		return false
+	if is_enabled then
+		self:callDisableHandlers(true)
 	end
 
-	if was_enabled then
-		if not self:_deactivate(true) then
-			return false
-		end
-		if not replacement:_activate(true) then
-			self:_activate(true)
-			return false
-		end
-	end
+	self.hooks = {}
+	self.polyHooks = {}
+	self.polyEnableHandlers = {}
+	self.polyDisableHandlers = {}
+	self.commands = {}
+	self.defaultConfig = {}
+	self.requireCache = {}
 
-	hook.plugins[key] = replacement
 	hook.resetCache()
-	return true
+
+	self:load(is_enabled, true)
+
+	hook.resetCache()
 end
 
 function plugin.onEnable(_) end
@@ -527,9 +524,8 @@ local function apply_patch(changed_paths)
 				plug.fullFileName = entry.fullFileName
 
 				if entry_still_exists(plug.entryPath) then
-					if plug:reload() then
-						print_scoped("Reloaded " .. name_space .. " " .. name)
-					end
+					plug:reload()
+					print_scoped("Reloaded " .. name_space .. " " .. name)
 				else
 					plug:disable(false)
 					hook.plugins[key] = nil

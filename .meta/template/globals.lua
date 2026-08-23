@@ -275,22 +275,6 @@ particle = {}
 ---@return Particle emitter The created or existing emitter.
 function particle.new(name) end
 
----Library for reading the in-game server browser list.
----serverListEntries[index: integer] -> ServerListEntry
-serverListEntries = {}
-
----Get the number of server list entries.
----@return integer count How many ServerListEntry objects there are.
-function serverListEntries.getCount() end
-
----Get the number of populated server list entries.
----@return integer count How many populated entries there are.
-function serverListEntries.getPopulatedCount() end
-
----Get all server list entries.
----@return ServerListEntry[] entries A list of all ServerListEntry objects.
-function serverListEntries.getAll() end
-
 ---Library for using generic physics functions of the engine.
 physics = {}
 
@@ -373,164 +357,6 @@ function physics.lineIntersectVehicleQuick(vehicle, posA, posB, includeWheels) e
 ---@return number? fraction The fraction of the intersection, or nil if nothing was hit.
 function physics.lineIntersectAnyQuick(posA, posB, ignoreHuman, humanPadding, includeWheels) end
 
----Library for directly reading and writing process memory.
-memory = {}
-
----Get the base address of the game executable.
----@return integer address
-function memory.getBaseAddress() end
-
----Get the address of a game object.
----@param object Player|Human|ItemType|Item|VehicleType|Vehicle|Bone|RigidBody|InventorySlot|Wheel|Action|MenuButton
----@return integer address
-function memory.getAddress(object) end
-
----Read a signed 1-byte integer from memory.
----@param address integer
----@return integer value
-function memory.readByte(address) end
-
----Read an unsigned 1-byte integer from memory.
----@param address integer
----@return integer value
-function memory.readUByte(address) end
-
----Read a signed 2-byte integer from memory.
----@param address integer
----@return integer value
-function memory.readShort(address) end
-
----Read an unsigned 2-byte integer from memory.
----@param address integer
----@return integer value
-function memory.readUShort(address) end
-
----Read a signed 4-byte integer from memory.
----@param address integer
----@return integer value
-function memory.readInt(address) end
-
----Read an unsigned 4-byte integer from memory.
----@param address integer
----@return integer value
-function memory.readUInt(address) end
-
----Read a signed 8-byte integer from memory.
----@param address integer
----@return integer value
-function memory.readLong(address) end
-
----Read an unsigned 8-byte integer from memory.
----@param address integer
----@return integer value
-function memory.readULong(address) end
-
----Read a single-precision floating point number from memory.
----@param address integer
----@return number value
-function memory.readFloat(address) end
-
----Read a double-precision floating point number from memory.
----@param address integer
----@return number value
-function memory.readDouble(address) end
-
----Read many bytes from memory.
----@param address integer
----@param count integer The number of bytes to read.
----@return string bytes
-function memory.readBytes(address, count) end
-
----Write a signed 1-byte integer to memory.
----@param address integer
----@param value integer
-function memory.writeByte(address, value) end
-
----Write an unsigned 1-byte integer to memory.
----@param address integer
----@param value integer
-function memory.writeUByte(address, value) end
-
----Write a signed 2-byte integer to memory.
----@param address integer
----@param value integer
-function memory.writeShort(address, value) end
-
----Write an unsigned 2-byte integer to memory.
----@param address integer
----@param value integer
-function memory.writeUShort(address, value) end
-
----Write a signed 4-byte integer to memory.
----@param address integer
----@param value integer
-function memory.writeInt(address, value) end
-
----Write an unsigned 4-byte integer to memory.
----@param address integer
----@param value integer
-function memory.writeUInt(address, value) end
-
----Write a signed 8-byte integer to memory.
----@param address integer
----@param value integer
-function memory.writeLong(address, value) end
-
----Write an unsigned 8-byte integer to memory.
----@param address integer
----@param value integer
-function memory.writeULong(address, value) end
-
----Write a single-precision floating point number to memory.
----@param address integer
----@param value number
-function memory.writeFloat(address, value) end
-
----Write a double-precision floating point number to memory.
----@param address integer
----@param value number
-function memory.writeDouble(address, value) end
-
----Write many bytes to memory.
----@param address integer
----@param bytes string The bytes to write.
-function memory.writeBytes(address, bytes) end
-
----Convert a 1-byte integer value into a hexadecimal string.
----@param value integer
----@return string hex
-function memory.toHexByte(value) end
-
----Convert a 2-byte integer value into a hexadecimal string.
----@param value integer
----@return string hex
-function memory.toHexShort(value) end
-
----Convert a 4-byte integer value into a hexadecimal string.
----@param value integer
----@return string hex
-function memory.toHexInt(value) end
-
----Convert an 8-byte integer value into a hexadecimal string.
----@param value integer
----@return string hex
-function memory.toHexLong(value) end
-
----Convert a 4-byte single-precision floating point value into a hexadecimal string.
----@param value number
----@return string hex
-function memory.toHexFloat(value) end
-
----Convert an 8-byte double-precision floating point value into a hexadecimal string.
----@param value number
----@return string hex
-function memory.toHexDouble(value) end
-
----Convert every byte in a string into a hexadecimal string.
----@param value string
----@return string hex
-function memory.toHexString(value) end
-
 ---Bundled JSON library (rxi json.lua 0.1.2).
 json = {}
 
@@ -593,6 +419,28 @@ __src_persistent_mode = ""
 ---@param argsBytes string
 ---@return boolean success
 function __src_emit_server_event(eventName, eventHash, argsBytes) end
+
+---🚫 Internal. Dispatch an encoded server event through core handlers.
+---@param eventHash string The encoded event-name hash.
+---@param argsBytes string The encoded event arguments.
+---@return SrcServerEventDispatchResult result
+function __src_dispatch_server_event(eventHash, argsBytes) end
+
+---🚫 Internal. Dispatch a native client hook through core.
+---@param eventName string
+---@param ... any
+---@return boolean overridden Whether a handler overrode the native behavior.
+function __src_dispatch_hook(eventName, ...) end
+
+---🚫 Internal. Dispatch native key input through core.
+---@param scancode integer
+---@param state integer One of KEY_UP, KEY_DOWN or KEY_PRESSED.
+function __src_dispatch_keybind(scancode, state) end
+
+---🚫 Internal. Apply a synced plugin patch through core.
+---@param changedPaths string[] Paths relative to scripts/.
+---@return boolean applied
+function __src_apply_plugin_patch(changedPaths) end
 
 ---List script paths available in the synced client script set.
 ---Paths are relative to scripts/, ex. "main/init.lua".

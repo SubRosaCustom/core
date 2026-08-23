@@ -285,6 +285,7 @@ do
 	---@field midgetWidget SrcPointWidget
 	---@field messageRing SrcTextWidget
 	---@field pressTabHint SrcTextWidget
+	---@field worldTimeText SrcTextWidget
 	---@field moneyText SrcTextWidget
 	---@field teamMoneyText SrcTextWidget
 	---@field roundStartText SrcTextWidget
@@ -614,6 +615,25 @@ do
 end
 
 do
+	---A sound emitter attached to the listener, returned by sounds:playSound.
+	---@class AudioEmitter
+	---@field class string 🔒 "AudioEmitter"
+	---@field index integer 🔒 The emitter slot index.
+	---@field isActive boolean 🔒 Whether the emitter is playing.
+	local AudioEmitter
+
+	---Stop the emitter.
+	function AudioEmitter:stop() end
+end
+
+---Result returned by the internal server-event dispatcher.
+---@class SrcServerEventDispatchResult
+---@field status "processed"|"no_handler"|"decode_error"|"handler_error"
+---@field handled integer Number of handlers that completed successfully.
+---@field errors integer Number of handlers that failed.
+---@field error? string The first error or status detail.
+
+do
 	---Sound API exposed by the client runtime; only one instance in the global
 	---variable `sounds`.
 	---@class SrcSounds
@@ -626,6 +646,13 @@ do
 	---@param maxDistance? number The maximum audible distance factor. Defaults to 1.0.
 	---@return integer soundId The loaded sound slot, or -1 on failure.
 	function SrcSounds:loadSound(path, maxDistance) end
+
+	---Play a loaded sound attached to the listener.
+	---@param soundId integer A sound slot returned by loadSound.
+	---@param volume? number The volume, where 1.0 is standard.
+	---@param pitch? number The pitch, where 1.0 is standard.
+	---@return AudioEmitter? emitter The emitter, or nil when no slot is available.
+	function SrcSounds:playSound(soundId, volume, pitch) end
 
 	---Play a loaded sound at a world position.
 	---@param soundId integer A sound slot returned by loadSound.
@@ -763,8 +790,8 @@ do
 	---@field index integer 🔒 The index of the array in memory this is.
 	---@field isActive boolean Whether this exists, only change if you know what you are doing.
 	---@field name string Nickname of this player.
-	---@field subRosaID integer Unique account index given by the master server.
-	---@field phoneNumber integer Unique public ID tied to the account, ex. 2560001.
+	---@field subRosaID integer 🔒 Unique account index given by the master server.
+	---@field phoneNumber integer 🔒 Unique public ID tied to the account, ex. 2560001.
 	---@field money integer
 	---@field teamMoney integer The value of their team's balance in world mode.
 	---@field budget integer The value of their team's budget in world mode.
@@ -795,9 +822,9 @@ do
 	---@field zoomLevel integer 0 = run, 1 = walk, 2 = aim.
 	---@field inputType integer What the input fields are used for. 0 = none, 1 = human, 2 = car, 3 = helicopter.
 	---@field menuTab integer What tab in the menu they are currently in.
-	---@field numActions integer
+	---@field numActions integer 🔒
 	---@field lastNumActions integer
-	---@field numMenuButtons integer
+	---@field numMenuButtons integer 🔒
 	---@field gender integer 0 = female, 1 = male.
 	---@field skinColor integer Starts at 0.
 	---@field hairColor integer
@@ -838,7 +865,7 @@ do
 	---@field isActive boolean Whether this exists, only change if you know what you are doing.
 	---@field stamina integer
 	---@field maxStamina integer
-	---@field vehicleSeat integer Seat index of the vehicle they are in.
+	---@field vehicleSeat integer 🔒 Seat index of the vehicle they are in.
 	---@field despawnTime integer Ticks remaining until removal if dead.
 	---@field spawnProtection integer Ticks of protection from damage remaining.
 	---@field movementState integer 0 = normal, 1 = in midair, 2 = sliding, rest unknown.
@@ -854,7 +881,7 @@ do
 	---@field walkInput number Backward to forward movement input, -1 to 1.
 	---@field inputFlags integer Bit flags of current buttons being pressed.
 	---@field lastInputFlags integer Input flags from the last tick.
-	---@field numChatMessages integer
+	---@field numChatMessages integer 🔒
 	---@field health integer Dynamic health, 0-100.
 	---@field bloodLevel integer How much blood they have, 0-100. <50 and they will collapse.
 	---@field chestHP integer Dynamic chest health, 0-100.
@@ -891,10 +918,6 @@ do
 	---@field vehicle Vehicle? The vehicle they are inside.
 	local Human
 
-	---Teleport to a different position by offsetting every bone and rigid body.
-	---@param position Vector The position to teleport to.
-	function Human:teleport(position) end
-
 	---Get a specific bone.
 	---@param index integer The index between 0 and 15.
 	---@return Bone bone The desired bone.
@@ -910,13 +933,6 @@ do
 	---@return InventorySlot inventorySlot The desired inventory slot.
 	function Human:getInventorySlot(index) end
 
-	---Set the velocity of every rigid body.
-	---@param velocity Vector The velocity to set.
-	function Human:setVelocity(velocity) end
-
-	---Add velocity to every rigid body.
-	---@param velocity Vector The velocity to add.
-	function Human:addVelocity(velocity) end
 end
 
 do
@@ -939,7 +955,7 @@ do
 	---Represents an inventory slot of a human.
 	---@class InventorySlot
 	---@field class string 🔒 "InventorySlot"
-	---@field count integer Amount of items in the slot.
+	---@field count integer 🔒 Amount of items in the slot.
 	---@field primaryItem Item? 🔒 The first item in the slot, if any.
 	---@field secondaryItem Item? 🔒 The second item in the slot, if any.
 	local InventorySlot
@@ -952,9 +968,9 @@ do
 	---@field data table A Lua table which persists for the lifespan of the runtime.
 	---@field index integer 🔒 The index of the array in memory this is.
 	---@field isActive boolean Whether this exists, only change if you know what you are doing.
-	---@field type integer 0 = bone, 1 = car body, 2 = wheel, 3 = item.
-	---@field linkedHumanOrItemID integer The index of the human or item linked to this body.
-	---@field localIndex integer The bone index this body belongs to, if any.
+	---@field type integer 🔒 0 = bone, 1 = car body, 2 = wheel, 3 = item.
+	---@field linkedHumanOrItemID integer 🔒 The index of the human or item linked to this body.
+	---@field localIndex integer 🔒 The bone index this body belongs to, if any.
 	---@field mass number In kilograms, kind of.
 	---@field pos Vector Position.
 	---@field vel Vector Velocity.
@@ -1007,7 +1023,7 @@ do
 	---@field type ItemType
 	---@field despawnTime integer Ticks remaining until removal.
 	---@field physicsSettledTimer integer How many ticks the item has been settling.
-	---@field parentSlot integer The slot this item occupies if it has a parent.
+	---@field parentSlot integer 🔒 The slot this item occupies if it has a parent.
 	---@field parentHuman Human? The human this item is mounted to, if any.
 	---@field parentItem Item? The item this item is mounted to, if any.
 	---@field pos Vector Position.
@@ -1016,9 +1032,9 @@ do
 	---@field vel Vector Velocity.
 	---@field rot RotMatrix Rotation.
 	---@field bullets integer How many bullets are inside this item.
-	---@field numChildItems integer How many child items are linked to this item.
+	---@field numChildItems integer 🔒 How many child items are linked to this item.
 	---@field cooldown integer
-	---@field numChatMessages integer
+	---@field numChatMessages integer 🔒
 	---@field muzzleFlashTimer integer Ticks remaining on the muzzle flash effect.
 	---@field cashSpread integer
 	---@field cashAmount integer
@@ -1029,9 +1045,9 @@ do
 	---@field enteredPhoneNumber integer The number that has been entered on the phone.
 	---@field phoneTexture integer The phone's texture ID. 0 for white, 1 for black.
 	---@field phoneStatus integer The status of the phone.
-	---@field computerCurrentLine integer
-	---@field computerTopLine integer Which line is at the top of the screen.
-	---@field computerCursor integer The location of the cursor, -1 for no cursor.
+	---@field computerCurrentLine integer 🔒
+	---@field computerTopLine integer 🔒 Which line is at the top of the screen.
+	---@field computerCursor integer 🔒 The location of the cursor, -1 for no cursor.
 	---@field memoText string The memo/newspaper text of the item. ⚠️ The setter is not implemented in the client runtime yet; assignment does nothing.
 	---@field hasPhysics boolean Whether this item is currently physically simulated.
 	---@field physicsSettled boolean Whether this item is settled by gravity.
@@ -1080,7 +1096,7 @@ do
 	---@field bulletType integer
 	---@field bulletVelocity number
 	---@field bulletSpread number
-	---@field numHands integer
+	---@field numHands integer 🔒
 	---@field rightHandPos Vector
 	---@field leftHandPos Vector
 	---@field primaryGripStiffness number
@@ -1127,9 +1143,9 @@ do
 	---@field gearY number Forward to back stick shift position, -1 to 1.
 	---@field gasControl number Brakes to full gas, -1 to 1.
 	---@field engineRPM integer The RPM of the engine, 0 to 8191.
-	---@field bladeBodyID integer The rigid body index of the helicopter blades.
-	---@field numSeats integer The number of accessible seats.
-	---@field numWheels integer The number of wheels.
+	---@field bladeBodyID integer 🔒 The rigid body index of the helicopter blades.
+	---@field numSeats integer 🔒 The number of accessible seats.
+	---@field numWheels integer 🔒 The number of wheels.
 	---@field lastDriver Player? 🔒 The last person to drive the vehicle.
 	---@field rigidBody RigidBody 🔒 The rigid body representing the physics of this vehicle.
 	---@field trafficCar TrafficCar? The traffic car the vehicle belongs to.
@@ -1162,8 +1178,8 @@ do
 	---@field price integer How much money is taken when bought.
 	---@field mass number In kilograms, kind of.
 	---@field acceleration number How fast the vehicle can accelerate.
-	---@field numWheels integer How many wheels this vehicle has.
-	---@field numSeats integer How many seats this vehicle has.
+	---@field numWheels integer 🔒 How many wheels this vehicle has.
+	---@field numSeats integer 🔒 How many seats this vehicle has.
 	---@field usesExternalModel boolean 🔒
 	local VehicleType
 end
@@ -1218,24 +1234,4 @@ do
 	---@field glTextureID integer The OpenGL texture name.
 	---@field isValid boolean 🔒 Whether the slot currently holds a usable texture.
 	local TextureDescriptor
-end
-
-do
-	---Represents an entry in the in-game server browser list.
-	---@class ServerListEntry
-	---@field class string 🔒 "ServerListEntry"
-	---@field index integer 🔒 The index of the array in memory this is.
-	---@field versionMajor integer
-	---@field versionMinor integer
-	---@field networkVersion integer
-	---@field name string The server name.
-	---@field srkIdentifier integer
-	---@field port integer
-	---@field ping integer
-	---@field gameType integer
-	---@field isPassworded boolean
-	---@field playerCount integer
-	---@field maxPlayerCount integer
-	---@field ip string 🔒 IPv4 address ("x.x.x.x").
-	local ServerListEntry
 end

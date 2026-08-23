@@ -27,6 +27,7 @@
 ---@field add fun(eventName: "DrawHumanLabels", name: string, func: hooks.DrawHumanLabels)
 ---@field add fun(eventName: "DrawMapMenu", name: string, func: hooks.DrawMapMenu)
 ---@field add fun(eventName: "DrawMenuItems", name: string, func: hooks.DrawMenuItems)
+---@field add fun(eventName: "PostDrawMenuItems", name: string, func: hooks.PostDrawMenuItems)
 ---@field add fun(eventName: "Draw3D", name: string, func: hooks.Draw3D)
 ---@field add fun(eventName: "DrawModels", name: string, func: hooks.DrawModels)
 ---@field add fun(eventName: "WriteClientData", name: string, func: hooks.WriteClientData)
@@ -60,6 +61,7 @@ local _known_engine_events = {
 	WriteClientData = true,
 	DrawMapMenu = true,
 	DrawMenuItems = true,
+	PostDrawMenuItems = true,
 	Draw3D = true,
 	DrawModels = true,
 	ExitGameCall = true,
