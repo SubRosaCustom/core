@@ -62,6 +62,10 @@ sounds = nil
 ---@type table
 config = {}
 
+---Named world markers rendered on the map and minimap.
+---@type main.blips.BlipsLib
+blips = nil
+
 ---Create a new Vector with 0 for every coordinate.
 ---@return Vector vector The created vector.
 function Vector() end

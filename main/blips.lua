@@ -14,6 +14,8 @@
 ---@field yaw? number Rotation angle in radians (used by arrow/rectangle shapes)
 ---@field clamp? boolean Whether to clamp blip to minimap boundary (default false)
 ---@field icon? userdata PNG texture loaded with Texture.loadFromFile
+---@field text? string Text to render when no valid icon is set
+---@field rotateWithMap? boolean Whether an icon rotates with the map (default false)
 
 ---@class main.blips.Blip
 ---@field name string
@@ -28,6 +30,8 @@
 ---@field yaw number
 ---@field clamp boolean
 ---@field icon? userdata
+---@field text? string
+---@field rotateWithMap boolean
 
 ---@class main.blips.BlipsLib
 ---@field private _blips { [string]: main.blips.Blip }
@@ -53,6 +57,7 @@ local default_blip_values = {
 	shape = "square",
 	yaw = 0,
 	clamp = false,
+	rotateWithMap = false,
 }
 
 local blip_option_types = {
@@ -67,6 +72,8 @@ local blip_option_types = {
 	yaw = "number",
 	clamp = "boolean",
 	icon = "userdata",
+	text = "string",
+	rotateWithMap = "boolean",
 }
 
 local function validate_options(options)
@@ -106,6 +113,8 @@ function blips:add(name, options)
 		yaw = options.yaw or default_blip_values.yaw,
 		clamp = options.clamp ~= nil and options.clamp or default_blip_values.clamp,
 		icon = options.icon,
+		text = options.text,
+		rotateWithMap = options.rotateWithMap ~= nil and options.rotateWithMap or default_blip_values.rotateWithMap,
 	}
 
 	self._blips[name] = new_blip

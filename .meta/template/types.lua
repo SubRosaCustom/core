@@ -298,6 +298,47 @@ do
 end
 
 do
+	---@alias main.blips.ShapeName "square"|"rectangle"|"diamond"|"circle"|"arrow"
+
+	---@class main.blips.BlipOptions
+	---@field worldX number World X coordinate.
+	---@field worldZ number World Z coordinate.
+	---@field r? number Red color component from 0 to 1.
+	---@field g? number Green color component from 0 to 1.
+	---@field b? number Blue color component from 0 to 1.
+	---@field a? number Alpha component from 0 to 1.
+	---@field size? number Shape radius, icon dimensions divided by two, or text size.
+	---@field shape? main.blips.ShapeName Geometric fallback shape.
+	---@field yaw? number Rotation in radians.
+	---@field clamp? boolean Whether to clamp the blip to the map boundary.
+	---@field icon? TextureDescriptor PNG texture to draw.
+	---@field text? string Text to draw when no valid icon is set.
+	---@field rotateWithMap? boolean Whether an icon rotates with the map.
+	local BlipOptions
+
+	---@class main.blips.Blip: main.blips.BlipOptions
+	---@field name string
+	---@field r number
+	---@field g number
+	---@field b number
+	---@field a number
+	---@field size number
+	---@field shape main.blips.ShapeName
+	---@field yaw number
+	---@field clamp boolean
+	---@field rotateWithMap boolean
+	local Blip
+
+	---@class main.blips.BlipsLib
+	---@field shape table<main.blips.ShapeName, main.blips.ShapeName>
+	---@field add fun(self: main.blips.BlipsLib, name: string, options: main.blips.BlipOptions)
+	---@field remove fun(self: main.blips.BlipsLib, name: string)
+	---@field update fun(self: main.blips.BlipsLib, name: string, options: main.blips.BlipOptions)
+	---@field get fun(self: main.blips.BlipsLib, name: string): main.blips.Blip?
+	local BlipsLib
+end
+
+do
 	---The local client state; only one instance in the global variable `client`.
 	---@class SrcLocalClient
 	---@field player Player? The local player, if any.
