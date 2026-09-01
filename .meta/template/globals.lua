@@ -117,6 +117,14 @@ function Texture.new(path) end
 ---@return TextureDescriptor? texture The loaded texture, or nil on failure.
 function Texture.loadFromFile(path) end
 
+---Load a sprite-sheet texture with automatic or developer-controlled playback.
+---Specify frameWidth/frameHeight or columns/rows. Frames are read left-to-right,
+---then top-to-bottom. Playback starts automatically unless autoplay is false.
+---@param path string The synced sprite-sheet asset path.
+---@param options TextureAnimationOptions
+---@return TextureAnimation animation The loaded animation.
+function Texture.loadAnimation(path, options) end
+
 ---Library for managing Player objects.
 ---players[index: integer] -> Player
 ---#players -> count of active players

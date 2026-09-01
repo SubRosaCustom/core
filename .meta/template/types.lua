@@ -1257,6 +1257,76 @@ do
 end
 
 do
+	---@class TextureAnimationOptions
+	---@field frameWidth? integer Width of one frame in pixels.
+	---@field frameHeight? integer Height of one frame in pixels.
+	---@field columns? integer Number of equal-width columns.
+	---@field rows? integer Number of equal-height rows.
+	---@field frameCount? integer Number of frames to use. Defaults to the full grid.
+	---@field fps? number Frames per second. Defaults to 12.
+	---@field playback? Enum.textureAnimation.playback Defaults to loop.
+	---@field direction? Enum.textureAnimation.direction Defaults to forward.
+	---@field autoplay? boolean Start playback immediately. Defaults to true.
+	local TextureAnimationOptions
+end
+
+do
+	---@class TextureAnimation
+	---@field texture TextureDescriptor 🔒 The normal texture descriptor updated by this animation.
+	---@field frame integer 🔒 Current zero-based frame.
+	---@field frameCount integer 🔒 Number of frames.
+	---@field columns integer 🔒 Number of sprite-sheet columns.
+	---@field rows integer 🔒 Number of used sprite-sheet rows.
+	---@field fps number 🔒 Frames per second.
+	---@field speed number 🔒 Playback speed multiplier.
+	---@field duration number 🔒 Duration in seconds at speed 1.
+	---@field isPlaying boolean 🔒 Whether automatic playback is active.
+	---@field isFinished boolean 🔒 Whether once playback reached its end.
+	---@field playback Enum.textureAnimation.playback 🔒 Current playback mode.
+	---@field direction Enum.textureAnimation.direction 🔒 Current playback direction.
+	local TextureAnimation
+
+	---Resume automatic playback.
+	function TextureAnimation:play() end
+
+	---Pause automatic playback at the current frame.
+	function TextureAnimation:pause() end
+
+	---Pause playback and select frame zero.
+	function TextureAnimation:stop() end
+
+	---Return to the direction's first frame and resume playback.
+	function TextureAnimation:restart() end
+
+	---Select a frame directly.
+	---@param frame integer Zero-based frame index.
+	function TextureAnimation:setFrame(frame) end
+
+	---Select the frame at a time offset.
+	---@param seconds number Non-negative time offset.
+	function TextureAnimation:seek(seconds) end
+
+	---Set the automatic playback rate.
+	---@param fps number Positive frames per second.
+	function TextureAnimation:setFps(fps) end
+
+	---Set the playback speed multiplier.
+	---@param speed number Positive speed multiplier.
+	function TextureAnimation:setSpeed(speed) end
+
+	---Set how playback behaves at an endpoint.
+	---@param playback Enum.textureAnimation.playback
+	function TextureAnimation:setPlayback(playback) end
+
+	---Set the playback direction.
+	---@param direction Enum.textureAnimation.direction
+	function TextureAnimation:setDirection(direction) end
+
+	---Release the animation's texture slot. The object cannot be reused afterward.
+	function TextureAnimation:destroy() end
+end
+
+do
 	---Represents one of the game's texture slots.
 	---@class TextureDescriptor
 	---@field class string 🔒 "TextureDescriptor"

@@ -462,6 +462,23 @@ enum.renderer.textureAlign = {
 	bottom = 0x8,
 }
 
+enum.textureAnimation = {}
+
+---@see Texture.loadAnimation
+---@enum Enum.textureAnimation.playback
+enum.textureAnimation.playback = {
+	once = 0,
+	loop = 1,
+	ping_pong = 2,
+}
+
+---@see Texture.loadAnimation
+---@enum Enum.textureAnimation.direction
+enum.textureAnimation.direction = {
+	forward = 0,
+	reverse = 1,
+}
+
 enum.mission = {}
 
 ---@see Mission.location
