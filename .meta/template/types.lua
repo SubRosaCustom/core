@@ -616,6 +616,7 @@ do
 	---(renderer.menu.checkbox(...)), the rest with a colon (renderer.menu:button(...)).
 	---@class SrcRendererMenu
 	---@field nextMenuItemKey integer Key of the next menu item.
+	---@field nextMenuItemDisabled boolean Whether the next menu item is disabled. Resets after the item is created.
 	---@field nextMenuItemPosX number Screen X position of the next menu item.
 	---@field nextMenuItemPosY number Screen Y position of the next menu item.
 	---@field nextMenuItemSizeX number Width of the next menu item.
@@ -638,6 +639,14 @@ do
 	---Draw a native menu text label inside the current panel or menu layout.
 	---@param label string Text to draw. Max length 255.
 	function SrcRendererMenu:text(label) end
+
+	---Queue a menu label that renders after menu items.
+	---@param text string Text to draw. Max length 255.
+	---@param x number Screen X position.
+	---@param y number Screen Y position.
+	---@param scale number Text scale.
+	---@param flags integer Text alignment flags.
+	function SrcRendererMenu:label(text, x, y, scale, flags) end
 
 	---Draw a button.
 	---@param label string The button label. Max length 255.
