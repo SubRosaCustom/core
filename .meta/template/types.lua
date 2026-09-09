@@ -139,7 +139,7 @@ do
 	---@class SrcCamera
 	---@field pos Vector Position.
 	---@field rot RotMatrix Rotation.
-	---@field fov number Field of view.
+	---@field fov number Horizontal perspective scale (tan of half the horizontal angle), not degrees or radians.
 	local SrcCamera
 end
 
@@ -349,6 +349,7 @@ do
 	---@field isInGame integer Whether the client is in a game.
 	---@field menuState integer The game's current menu state.
 	---@field enableMouse boolean Whether the game cursor is enabled.
+	---@field mouse SrcMouse 🔒 Current cursor position and mouse buttons.
 	---@field isTabMenu integer Whether the tab (player list) menu is open.
 	---@field isPauseMenu integer 🔒 Whether the pause menu is open.
 	---@field ping integer The client's ping to the current server.
@@ -362,6 +363,15 @@ do
 	---@field mouseDeltaY number Mouse pitch delta this tick, scaled by the game's mouse sensitivity.
 	---@field hud SrcHudWidgets 🔒 The repositionable HUD widgets.
 	local SrcLocalClient
+end
+
+do
+	---@class SrcMouse
+	---@field pos Vector 🔒 Cursor position in the 1024x576 canvas; Z is zero.
+	---@field delta Vector Mouse-look delta for this tick; X/Y are scaled game sensitivity values.
+	---@field leftClick boolean 🔒 Whether the left mouse button is down.
+	---@field rightClick boolean 🔒 Whether the right mouse button is down.
+	local SrcMouse
 end
 
 do
@@ -404,11 +414,22 @@ do
 	---@param params integer Text style/alignment bit flags.
 	function SrcRenderer:drawText(text, x, y, size, r, g, b, a, params) end
 
-	---Project a world position into screen space.
+	---Project through client.camera onto the game's 1024x576 canvas (top-left origin).
+	---Returns nil before the 0.0625 near plane or for invalid/non-finite input or FOV.
+	---Does not test world occlusion or the far plane. Requires an orthonormal camera rotation.
 	---@param worldPos Vector The world position to project.
-	---@param allowOffscreen boolean Whether to return positions outside the screen.
-	---@return Vector? screenPos The screen position, or nil if it cannot be shown.
+	---@param allowOffscreen boolean Allow X/Y outside the canvas; points behind the camera still return nil.
+	---@return Vector? screenPos X/Y are canvas coordinates; Z is forward camera depth in world units (previously zero).
 	function SrcRenderer:worldToScreenPosition(worldPos, allowOffscreen) end
+
+	---Convert a canvas position and forward camera depth to a world position through client.camera.
+	---Inverse of worldToScreenPosition with the same camera state and an orthonormal rotation.
+	---Allows X/Y outside the canvas. Does not raycast or find a surface under the position.
+	---@param x number Canvas X coordinate, increasing right from 0 to 1024.
+	---@param y number Canvas Y coordinate, increasing down from 0 to 576.
+	---@param depth number Forward camera depth in world units, at least 0.0625; not distance along the ray.
+	---@return Vector? worldPos World position, or nil for invalid/non-finite input, FOV, or output.
+	function SrcRenderer:screenToWorldPosition(x, y, depth) end
 
 	---Draw a filled square in screen space.
 	---@param x number Screen X position.
@@ -652,6 +673,10 @@ do
 	---@param label string The button label. Max length 255.
 	---@return boolean pressed Whether the button was pressed this frame.
 	function SrcRendererMenu:button(label) end
+
+	---Show a tooltip for the last menu item after hovering for a short delay.
+	---@param text string Tooltip text.
+	function SrcRendererMenu:tooltip(text) end
 
 	---Draw a text input field.
 	---@param label string The input label. Max length 255.
