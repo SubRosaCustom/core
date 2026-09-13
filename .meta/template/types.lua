@@ -690,11 +690,13 @@ do
 end
 
 do
-	---A sound emitter attached to the listener, returned by sounds:playSound.
+	---A sound emitter returned by sounds:playSound; follows the listener until its position or velocity changes.
 	---@class AudioEmitter
 	---@field class string 🔒 "AudioEmitter"
 	---@field index integer 🔒 The emitter slot index.
 	---@field isActive boolean 🔒 Whether the emitter is playing.
+	---@field pos Vector Current world position. Changing it detaches listener tracking.
+	---@field vel Vector Current world velocity. Changing it detaches listener tracking.
 	local AudioEmitter
 
 	---Stop the emitter.
