@@ -476,7 +476,7 @@ do
 	---@param yaw number Rotation angle in radians.
 	function SrcRenderer:drawMapCircle(x, y, size, r, g, b, a, yaw) end
 
-	---Draw a 3D debug line in the world.
+	---Draw a 3D debug line in the world. Compatible consecutive calls can share a native draw batch.
 	---Only usable inside Draw3D.
 	---@param from Vector The start point.
 	---@param to Vector The end point.
@@ -486,7 +486,7 @@ do
 	---@param a number Alpha component (0-1).
 	function SrcRenderer:drawDebugLine3D(from, to, r, g, b, a) end
 
-	---Draw a 3D wireframe box in the world.
+	---Draw a 3D wireframe box in the world. Compatible consecutive calls can share a native draw batch.
 	---Only usable inside Draw3D.
 	---@param pos Vector The world position of the box center.
 	---@param rot RotMatrix The rotation of the box.
@@ -499,7 +499,7 @@ do
 	---@param a number Alpha component (0-1).
 	function SrcRenderer:drawDebugWireBox3D(pos, rot, sizeX, sizeY, sizeZ, r, g, b, a) end
 
-	---Draw a 3D solid box in the world.
+	---Draw a 3D solid box in the world. Compatible consecutive calls can share a native draw batch.
 	---Only usable inside Draw3D.
 	---@param pos Vector The world position of the box center.
 	---@param rot RotMatrix The rotation of the box.
