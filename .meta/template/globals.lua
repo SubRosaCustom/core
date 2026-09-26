@@ -117,6 +117,13 @@ function Texture.new(path) end
 ---@return TextureDescriptor? texture The loaded texture, or nil on failure.
 function Texture.loadFromFile(path) end
 
+---Load an evenly divided spritesheet from a synced texture asset.
+---The animation owns a texture slot until destroy or runtime reset.
+---@param path string Synced image path.
+---@param options TextureSpritesheetOptions Frame layout and playback settings.
+---@return TextureAnimation animation
+function Texture.loadSpritesheet(path, options) end
+
 ---Library for managing Player objects.
 ---players[index: integer] -> Player
 ---#players -> count of active players

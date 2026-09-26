@@ -1339,3 +1339,47 @@ do
 	---@field isValid boolean 🔒 Whether the slot currently holds a usable texture.
 	local TextureDescriptor
 end
+
+---@class TextureSpritesheetOptions
+---@field frameWidth? integer Frame width, or set columns.
+---@field frameHeight? integer Frame height, or set rows.
+---@field columns? integer Number of columns when frameWidth is omitted.
+---@field rows? integer Number of rows when frameHeight is omitted.
+---@field frameCount? integer Number of frames to use, in row-major order.
+---@field fps? number Frames per second; defaults to 12.
+---@field playback? integer 0 once, 1 loop (default), 2 ping-pong.
+---@field direction? integer 0 forward (default), 1 reverse.
+---@field autoplay? boolean Start immediately; defaults to true.
+
+---@class TextureAnimation
+---@field texture TextureDescriptor? 🔒 Current texture slot; nil after destruction.
+---@field frame integer 🔒 Current zero-based frame.
+---@field frameCount integer 🔒 Number of frames.
+---@field columns integer 🔒 Sheet columns.
+---@field rows integer 🔒 Rows containing frames.
+---@field fps number 🔒 Frames per second.
+---@field speed number 🔒 Playback speed multiplier.
+---@field duration number 🔒 Frame count divided by fps, in seconds.
+---@field isPlaying boolean 🔒 Whether playback is active.
+---@field isFinished boolean 🔒 Whether once playback has finished.
+---@field playback integer 🔒 0 once, 1 loop, 2 ping-pong.
+---@field direction integer 🔒 0 forward, 1 reverse.
+local TextureAnimation
+
+function TextureAnimation:play() end
+function TextureAnimation:pause() end
+function TextureAnimation:stop() end
+function TextureAnimation:restart() end
+---@param frame integer Zero-based frame index.
+function TextureAnimation:setFrame(frame) end
+---@param seconds number Position in seconds.
+function TextureAnimation:seek(seconds) end
+---@param fps number Positive finite frame rate.
+function TextureAnimation:setFps(fps) end
+---@param speed number Positive finite speed multiplier.
+function TextureAnimation:setSpeed(speed) end
+---@param playback integer 0 once, 1 loop, 2 ping-pong.
+function TextureAnimation:setPlayback(playback) end
+---@param direction integer 0 forward, 1 reverse.
+function TextureAnimation:setDirection(direction) end
+function TextureAnimation:destroy() end
