@@ -401,6 +401,18 @@ do
 	---@field menu SrcRendererMenu 🔒 In-game menu widget API. Only usable inside DrawMenuItems or PostDrawMenuItems.
 	local SrcRenderer
 
+	---Clip subsequent screen-space drawing to a canvas rectangle (1024x576, top-left origin).
+	---Nested rectangles intersect. Call endScissor for each beginScissor.
+	---Any unmatched scopes are cleared when the current Lua hook ends.
+	---@param x number
+	---@param y number
+	---@param width number Non-negative width.
+	---@param height number Non-negative height.
+	function SrcRenderer:beginScissor(x, y, width, height) end
+
+	---Restore the scissor state before the matching beginScissor.
+	function SrcRenderer:endScissor() end
+
 	---Draw text on the screen.
 	---Only usable inside drawing hooks such as DrawUI.
 	---@param text string The text to draw.
