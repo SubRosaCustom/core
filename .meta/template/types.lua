@@ -639,6 +639,21 @@ do
 	---@param color? ColorRGBA The color to tint the model with. Defaults to white.
 	---@overload fun(self: SrcRenderer, modelId: integer, worldPos: Vector, worldRot: RotMatrix, color: ColorRGBA)
 	function SrcRenderer:renderObject(modelId, worldPos, worldRot, texture, color) end
+
+	---Draw a loaded CMO over the in-game HUD during DrawUI.
+	---The model origin appears at x/y on the 1024x576 canvas. At the origin,
+	---one model unit spans pixelsPerUnit canvas pixels. The model uses its own
+	---depth buffer, so it does not intersect world geometry.
+	---@param modelId integer A model ID returned by loadCMO.
+	---@param x number Canvas X coordinate of the model origin.
+	---@param y number Canvas Y coordinate of the model origin.
+	---@param pixelsPerUnit number Positive canvas pixels per model unit at the origin.
+	---@param rotation RotMatrix Model rotation.
+	---@param texture? TextureDescriptor Texture from the textures[] table.
+	---@param color? ColorRGBA Model tint. Defaults to white.
+	---@return boolean drawn False if modelId is not a loaded Lua CMO or the preview is unavailable.
+	---@overload fun(self: SrcRenderer, modelId: integer, x: number, y: number, pixelsPerUnit: number, rotation: RotMatrix, color: ColorRGBA): boolean
+	function SrcRenderer:drawObject2D(modelId, x, y, pixelsPerUnit, rotation, texture, color) end
 end
 
 do
