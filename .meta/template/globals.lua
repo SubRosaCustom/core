@@ -404,6 +404,11 @@ function discoverNewPlugins() end
 function onServerEvent(name, fn) end
 
 ---Emit a client-to-server SRC event.
+---Protocol 8 fragments and retries events over UDP. Delivery is unordered.
+---The complete encoded argument block is limited to 256 KiB, including serialization overhead.
+---The server may advertise a lower limit; oversized events and full queues return false.
+---Queue acceptance does not guarantee remote processing.
+---Disconnects discard pending events; they are not replayed into a new session.
 ---Arguments may be nil, boolean, number, string or blob() values.
 ---Provided by the core runtime (main/init.lua).
 ---@param name string The event name.
