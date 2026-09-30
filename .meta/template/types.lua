@@ -394,7 +394,8 @@ end
 do
 	---Rendering API exposed by the client runtime; only one instance in the
 	---global variable `renderer`.
-	---2D drawing uses the game's virtual 1024x576 screen space.
+	---2D drawing uses the current native drawing context; normally the virtual 1024x576 canvas.
+	---DrawMap uses map drawing coordinates. Convert world positions explicitly with getMapCoordinates.
 	---@class SrcRenderer
 	---@field textFont NativeFont The font used by drawText. Must come from the fonts[] table and be loaded.
 	---@field enableHead boolean Whether the first person head/body is rendered.
@@ -467,8 +468,8 @@ do
 	---Draw a filled rectangle in screen space, rotated around its position.
 	---@param x number Screen X position.
 	---@param y number Screen Y position.
-	---@param width number Rectangle width.
-	---@param height number Rectangle height.
+	---@param width number Half-width from the center.
+	---@param height number Half-height from the center.
 	---@param yaw number Rotation angle in radians.
 	---@param r number Red color component (0-1).
 	---@param g number Green color component (0-1).
@@ -487,6 +488,20 @@ do
 	---@param a number Alpha component (0-1).
 	---@param yaw number Rotation angle in radians.
 	function SrcRenderer:drawMapCircle(x, y, size, r, g, b, a, yaw) end
+
+	---Explicitly project world X/Z using the parameters supplied to DrawMap. Does not change drawing state.
+	---@param worldX number
+	---@param worldZ number
+	---@param originX number
+	---@param originZ number
+	---@param scale number
+	---@param mapX number
+	---@param mapY number
+	---@param yaw number Rotation in radians.
+	---@return number x
+	---@return number y
+	function SrcRenderer:getMapCoordinates(worldX, worldZ, originX, originZ, scale, mapX, mapY, yaw) end
+
 
 	---Draw a 3D debug line in the world. Compatible consecutive calls can share a native draw batch.
 	---Only usable inside Draw3D.
@@ -623,9 +638,9 @@ do
 	---@return boolean drawn Whether the texture was valid and drawn.
 	function SrcRenderer:drawTextureRotated2D(texture, x, y, width, height, yaw, r, g, b, a) end
 
-	---Load a CMO model by name and assign it a model ID for renderObject.
-	---Resolves against synced assets (data/model/) and local files. Cached per name.
-	---@param name string The CMO name, ex. "foo" or "data/model/foo.cmo".
+	---Load a CMO from its exact synced asset path and assign it a model ID for renderObject.
+	---The .cmo suffix is optional. Cached per name.
+	---@param name string The CMO path, ex. "data/model/foo.cmo".
 	---@return integer modelId The assigned model ID, or -1 on failure.
 	function SrcRenderer:loadCMO(name) end
 
@@ -1089,25 +1104,22 @@ do
 	---@field isSettled boolean Whether this rigid body is settled by gravity.
 	local RigidBody
 
-	---⚠️ Not implemented in the SRC client runtime; currently returns nil.
+	---Raises an unsupported-operation error in the SRC client runtime.
 	---@param otherBody RigidBody The second body in the bond.
 	---@param thisLocalPos Vector The local position relative to this body.
 	---@param otherLocalPos Vector The local position relative to the other body.
-	---@return nil
 	function RigidBody:bondTo(otherBody, thisLocalPos, otherLocalPos) end
 
-	---⚠️ Not implemented in the SRC client runtime; currently returns nil.
+	---Raises an unsupported-operation error in the SRC client runtime.
 	---@param otherBody RigidBody The second body in the bond.
-	---@return nil
 	function RigidBody:bondRotTo(otherBody) end
 
-	---⚠️ Not implemented in the SRC client runtime; currently returns nil.
+	---Raises an unsupported-operation error in the SRC client runtime.
 	---@param localPos Vector The local position relative to this body.
 	---@param globalPos Vector The global position in the level.
-	---@return nil
 	function RigidBody:bondToLevel(localPos, globalPos) end
 
-	---⚠️ Not implemented in the SRC client runtime; currently does nothing.
+	---Raises an unsupported-operation error in the SRC client runtime.
 	---@param localPos Vector The local position relative to this body.
 	---@param normal Vector The normal of the collision.
 	---@param a number
@@ -1124,7 +1136,7 @@ do
 	---@field data table A Lua table which persists for the lifespan of the runtime.
 	---@field index integer 🔒 The index of the array in memory this is.
 	---@field isActive boolean Whether this exists, only change if you know what you are doing.
-	---@field type ItemType
+	---@field type ItemType 🔒 The native item type. Assignment raises an error in the client runtime.
 	---@field despawnTime integer Ticks remaining until removal.
 	---@field physicsSettledTimer integer How many ticks the item has been settling.
 	---@field parentSlot integer 🔒 The slot this item occupies if it has a parent.
@@ -1152,7 +1164,7 @@ do
 	---@field computerCurrentLine integer 🔒
 	---@field computerTopLine integer 🔒 Which line is at the top of the screen.
 	---@field computerCursor integer 🔒 The location of the cursor, -1 for no cursor.
-	---@field memoText string The memo/newspaper text of the item. ⚠️ The setter is not implemented in the client runtime yet; assignment does nothing.
+	---@field memoText string The memo/newspaper text of the item. Assignment raises an unsupported-operation error on the client.
 	---@field hasPhysics boolean Whether this item is currently physically simulated.
 	---@field physicsSettled boolean Whether this item is settled by gravity.
 	---@field isStatic boolean Whether the item is immovable.

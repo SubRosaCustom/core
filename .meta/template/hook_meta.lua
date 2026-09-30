@@ -29,6 +29,12 @@
 ---x/y are the label's screen position and size is the label's text size.
 ---@alias hooks.DrawHumanLabels fun(player: Player, x: number, y: number, size: number): HookReturn
 
+---Called after the map image, before markers, on both maps, in the existing native drawing context.
+---No automatic world-coordinate transform or render-state scope is applied.
+---Use renderer:getMapCoordinates to project positions explicitly; multiply dimensions by scale.
+---The full map uses mapX/mapY/yaw = 0. The minimap uses its center and camera yaw.
+---@alias hooks.DrawMap fun(originX: number, originZ: number, scale: number, mapX: number, mapY: number, yaw: number, minimap: boolean): HookReturn
+
 ---Called when map/minimap markers are drawn.
 ---originX/originY are the world-space origin of the projection (big map legend
 ---position, or the local human position for the minimap) and scale converts
