@@ -673,10 +673,9 @@ end
 
 do
 	---In-game menu widget API; accessed through renderer.menu.
-	---Only usable inside the DrawMenuItems or PostDrawMenuItems hook.
+	---Draw widgets inside a native menu hook, such as DrawPlayerMenus or DrawMenuItems.
 	---Widget layout is controlled with the nextMenuItem* fields before each call.
-	---⚠️ checkbox, intSlider, floatSlider and comboBox are called with a dot
-	---(renderer.menu.checkbox(...)), the rest with a colon (renderer.menu:button(...)).
+	---Call menu methods with a colon, for example renderer.menu:comboBox(...).
 	---@class SrcRendererMenu
 	---@field nextMenuItemKey integer Key of the next menu item.
 	---@field nextMenuItemDisabled boolean Whether the next menu item is disabled. Resets after the item is created.
@@ -688,10 +687,10 @@ do
 	---Native menu widgets and menu:text drawn between these calls are clipped and scroll with the panel.
 	---@field beginScrollablePanel fun(label: string, x: number, y: number, width: number, height: number): boolean Open a native scrollable panel. Returns false when the native panel table is full.
 	---@field endScrollablePanel fun(): boolean Close the current native scrollable panel. Returns whether its close button was pressed.
-	---@field checkbox fun(label: string, value: boolean): boolean, boolean Draw a checkbox. Returns the new value and whether it changed.
-	---@field intSlider fun(label: string, value: integer, min: integer, max: integer): integer, boolean Draw an integer slider. Returns the new value and whether it changed.
-	---@field floatSlider fun(label: string, value: number, min: number, max: number): number, boolean Draw a float slider. Returns the new value and whether it changed. Throws on platforms where it is not available yet.
-	---@field comboBox fun(label: string, selectedIndex: integer, options: string[]): integer, boolean Draw a combo box. Returns the new selected index and whether it changed.
+	---@field checkbox fun(self: SrcRendererMenu, label: string, value: boolean): boolean, boolean Draw a checkbox. Returns the new value and whether it changed.
+	---@field intSlider fun(self: SrcRendererMenu, label: string, value: integer, min: integer, max: integer): integer, boolean Draw an integer slider. Returns the new value and whether it changed.
+	---@field floatSlider fun(self: SrcRendererMenu, label: string, value: number, min: number, max: number): number, boolean Draw a float slider. Returns the new value and whether it changed. Throws on platforms where it is not available yet.
+	---@field comboBox fun(self: SrcRendererMenu, label: string, selectedIndex: integer, options: string[]): integer, boolean Draw a combo box. Options must be a dense array starting at 1; selectedIndex is zero-based. Returns the new selected index and whether it changed.
 	local SrcRendererMenu
 
 	---Measure text using the active native menu font and text scale.
