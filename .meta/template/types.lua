@@ -345,6 +345,7 @@ do
 	---@field human Human? The human the local player controls, if any.
 	---@field spectatingHuman Human? The human currently being spectated, if any.
 	---@field camera SrcCamera 🔒 The local game camera.
+	---@field screenBlackoutAlpha number Native damage/consciousness blackout opacity (0–1). Recomputed each simulation tick; write before rendering to override for that frame.
 	---@field isMapToggled integer Whether the fullscreen map is open.
 	---@field isInGame integer Whether the client is in a game.
 	---@field menuState integer The game's current menu state.
@@ -517,9 +518,9 @@ do
 	---Only usable inside Draw3D.
 	---@param pos Vector The world position of the box center.
 	---@param rot RotMatrix The rotation of the box.
-	---@param sizeX number Box size on the X axis.
-	---@param sizeY number Box size on the Y axis.
-	---@param sizeZ number Box size on the Z axis.
+	---@param sizeX number Box half-extent on the X axis.
+	---@param sizeY number Box half-extent on the Y axis.
+	---@param sizeZ number Box half-extent on the Z axis.
 	---@param r number Red color component (0-1).
 	---@param g number Green color component (0-1).
 	---@param b number Blue color component (0-1).
@@ -530,9 +531,9 @@ do
 	---Only usable inside Draw3D.
 	---@param pos Vector The world position of the box center.
 	---@param rot RotMatrix The rotation of the box.
-	---@param sizeX number Box size on the X axis.
-	---@param sizeY number Box size on the Y axis.
-	---@param sizeZ number Box size on the Z axis.
+	---@param sizeX number Box half-extent on the X axis.
+	---@param sizeY number Box half-extent on the Y axis.
+	---@param sizeZ number Box half-extent on the Z axis.
 	---@param r number Red color component (0-1).
 	---@param g number Green color component (0-1).
 	---@param b number Blue color component (0-1).

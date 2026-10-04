@@ -450,6 +450,7 @@ function __src_dispatch_hook(eventName, ...) end
 
 ---🚫 Internal. Dispatch native key input through core.
 ---@param scancode integer
+---Tab menus permit dispatch; pause menus and chat suppress it.
 ---@param state integer One of KEY_UP, KEY_DOWN or KEY_PRESSED.
 function __src_dispatch_keybind(scancode, state) end
 
