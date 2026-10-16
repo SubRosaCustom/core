@@ -60,6 +60,19 @@ Plugin enablement persistence follows the RosaServerCore pattern:
 - `rs_integration` can update that file and trigger an immediate SRC refresh
 - plugin-specific settings still live under `config.yml`
 
+Plugin identities come from `plugins/<name>.lua` or `plugins/<name>/init.lua`.
+Names are case-sensitive and may contain only ASCII letters, digits, `_`, and `-`.
+A directory entry takes precedence if both forms exist, and entries load in sorted
+name order. Asset owners use this filename/directory name, not `plugin.name`.
+`disabledPlugins.json` must be a JSON array of those names; invalid updates leave
+the previous disable state in effect.
+
+Disabled plugins and inactive modes are discovered without evaluating their entry
+files. Their code runs when enabled. A patch applies its disable state before
+loading entries, and a failed reload leaves that plugin disabled until a successful
+retry. Only the mode named by `hook.persistentMode` (or the initial
+`defaultGameMode`) loads initially.
+
 ## Scope
 
 `core` owns client Lua behavior.
@@ -73,6 +86,15 @@ It does not own:
 - server authority or RosaServer integration
 
 Those concerns belong to `client` and `rs_integration`.
+
+## Checks
+
+Run the focused Lua checks from this repository root:
+
+```sh
+lua test/input_menu.lua
+lua test/plugin_scope.lua
+```
 
 ## Related Repositories
 

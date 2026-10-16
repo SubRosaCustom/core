@@ -12,7 +12,6 @@ local render = plugin:require("render")
 plugin.defaultConfig = constants.defaultConfig
 
 local runtime = _G.__srccPoolClientRuntime or {
-	initialized = false,
 	activePlugin = nil,
 	activeContext = nil,
 }
@@ -28,12 +27,7 @@ local function activeContext()
 end
 
 local function installHandlers()
-	if runtime.initialized then
-		return
-	end
-
-	runtime.initialized = true
-
+	-- Event registrations belong to this plugin definition and are rebuilt on reload.
 	onServerEvent(constants.EVENTS.state, function(snapshotBlob)
 		local context = activeContext()
 		if context then

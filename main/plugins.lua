@@ -9,11 +9,27 @@ local function print_scoped(...)
 end
 
 local disabled_plugins = {}
+local has_disabled_plugins_state = false
 local loading_plugin = nil
 local server_event_registration_phase = nil
 local new_plugin
 
+-- Keep owner names identical to the server's scoped asset manifest.
+local function valid_stem(name)
+	return type(name) == "string" and name:match("^[A-Za-z0-9_-]+$") ~= nil
+end
+
+local function sorted_keys(values)
+	local keys = {}
+	for key in pairs(values) do
+		table.insert(keys, key)
+	end
+	table.sort(keys)
+	return keys
+end
+
 local function replace_disabled_plugins(next_disabled_plugins)
+	has_disabled_plugins_state = true
 	for name, _ in pairs(disabled_plugins) do
 		disabled_plugins[name] = nil
 	end
@@ -25,22 +41,24 @@ end
 
 local function load_disabled_plugins()
 	local source = __src_read_file(disabled_plugins_file)
-	if not source or source == "" then
+	if not source then
 		replace_disabled_plugins({})
 		return true
 	end
 
 	local ok, decoded = pcall(json.decode, source)
-	if not ok or type(decoded) ~= "table" then
+	if not ok or type(decoded) ~= "table" or not source:match("^%s*%[") then
 		print_scoped(string.format("\27[33mFailed to parse %s", disabled_plugins_file))
 		return false
 	end
 
 	local next_disabled_plugins = {}
-	for _, name in ipairs(decoded) do
-		if type(name) == "string" and name ~= "" then
-			next_disabled_plugins[name] = true
+	for _, name in pairs(decoded) do
+		if not valid_stem(name) then
+			print_scoped(string.format("\27[33mInvalid plugin name in %s", disabled_plugins_file))
+			return false
 		end
+		next_disabled_plugins[name] = true
 	end
 
 	replace_disabled_plugins(next_disabled_plugins)
@@ -67,6 +85,7 @@ load_disabled_plugins()
 ---@field defaultConfig table
 ---@field config table
 ---@field isEnabled boolean
+---@field private _is_loaded boolean
 ---@field fileName string
 ---@field fullFileName string?
 ---@field doAutoReload boolean
@@ -99,30 +118,32 @@ plugin.__index = plugin
 
 function plugin:enable(should_save)
 	if not self.isEnabled then
-		if not self:_activate(false) then
-			return false
+		local success
+		if self._is_loaded then
+			success = self:_activate(false)
+		else
+			success = self:load(true, false)
 		end
-
-		if should_save then
-			disabled_plugins[self.fileName] = nil
+		if not success then
+			return false
 		end
 	end
 
+	if should_save then
+		disabled_plugins[self.fileName] = nil
+	end
 	return true
 end
 
 function plugin:disable(should_save)
+	local success = true
 	if self.isEnabled then
-		local success = self:_deactivate(false)
-
-		if should_save then
-			disabled_plugins[self.fileName] = true
-		end
-
-		return success
+		success = self:_deactivate(false)
 	end
-
-	return true
+	if should_save then
+		disabled_plugins[self.fileName] = true
+	end
+	return success
 end
 
 function plugin:print(...)
@@ -252,41 +273,9 @@ function plugin:_deactivate(is_reload)
 	return success
 end
 
-function plugin:load(is_enabled, is_reload)
-	local loaded_file, load_error = loadfile(self.entryPath)
-	if not loaded_file then
-		print_scoped(string.format("\27[38;5;196mFailed to load plugin '%s': %s", self.entryPath, load_error))
-		return false
-	end
-
-	local previous_loading_plugin = loading_plugin
-	local previous_registration_phase = server_event_registration_phase
-	loading_plugin = self
-	server_event_registration_phase = "entry"
-	local success, err = pcall(loaded_file, self)
-	loading_plugin = previous_loading_plugin
-	server_event_registration_phase = previous_registration_phase
-	if not success then
-		print_scoped(string.format("\27[38;5;196mFailed to load plugin '%s': %s", self.entryPath, err or "unknown"))
-		return false
-	end
-
-	self:setConfig()
+function plugin:_reset_definition()
 	self.isEnabled = false
-	if is_enabled then
-		return self:_activate(is_reload)
-	end
-
-	return true
-end
-
-function plugin:reload()
-	local is_enabled = self.isEnabled
-
-	if is_enabled then
-		self:callDisableHandlers(true)
-	end
-
+	self._is_loaded = false
 	self.hooks = {}
 	self.polyHooks = {}
 	self.polyEnableHandlers = {}
@@ -294,12 +283,63 @@ function plugin:reload()
 	self.commands = {}
 	self.defaultConfig = {}
 	self.requireCache = {}
+	self._server_event_handlers = {}
+	self._active_server_event_handlers = {}
+	self.onEnable = nil
+	self.onDisable = nil
+end
 
+function plugin:load(is_enabled, is_reload)
+	-- Disabled plugins and inactive modes must not evaluate entry-time resource loads.
+	if not is_enabled then
+		return true
+	end
+
+	self.isEnabled = false
+	local loaded_file, load_error = loadfile(self.entryPath)
+	if not loaded_file then
+		print_scoped(string.format("\27[38;5;196mFailed to load plugin '%s': %s", self.entryPath, load_error))
+		self:_reset_definition()
+		hook.resetCache()
+		return false
+	end
+
+	local previous_loading_plugin = loading_plugin
+	local previous_registration_phase = server_event_registration_phase
+	loading_plugin = self
+	server_event_registration_phase = "entry"
+	local success, err = pcall(function()
+		loaded_file(self)
+		self:setConfig()
+	end)
+	loading_plugin = previous_loading_plugin
+	server_event_registration_phase = previous_registration_phase
+	if not success then
+		print_scoped(string.format("\27[38;5;196mFailed to load plugin '%s': %s", self.entryPath, err or "unknown"))
+		self:callDisableHandlers(is_reload)
+		self:_reset_definition()
+		hook.resetCache()
+		return false
+	end
+
+	self._is_loaded = true
+	return self:_activate(is_reload)
+end
+
+function plugin:reload(is_enabled)
+	if is_enabled == nil then
+		is_enabled = self.isEnabled
+	end
+
+	if self.isEnabled then
+		self:_deactivate(true)
+	end
+	self:_reset_definition()
 	hook.resetCache()
 
-	self:load(is_enabled, true)
-
+	local success = self:load(is_enabled, true)
 	hook.resetCache()
+	return success
 end
 
 function plugin.onEnable(_) end
@@ -307,7 +347,7 @@ function plugin.onDisable(_) end
 
 new_plugin = function(name_space, stem)
 	return setmetatable({
-		name = "Unknown",
+		name = stem,
 		author = "Unknown",
 		description = "n/a",
 		hooks = {},
@@ -317,6 +357,7 @@ new_plugin = function(name_space, stem)
 		defaultConfig = {},
 		config = {},
 		isEnabled = false,
+		_is_loaded = false,
 		requireCache = {},
 		nameSpace = name_space,
 		fileName = stem,
@@ -333,7 +374,7 @@ local function collect_entries(name_space)
 			local relative = path:sub(#name_space + 2)
 
 			local single = relative:match("^([^/]+)%.lua$")
-			if single then
+			if valid_stem(single) and not entries[single] then
 				entries[single] = {
 					stem = single,
 					path = path,
@@ -342,7 +383,7 @@ local function collect_entries(name_space)
 			end
 
 			local folder = relative:match("^([^/]+)/init%.lua$")
-			if folder then
+			if valid_stem(folder) then
 				entries[folder] = {
 					stem = folder,
 					path = path,
@@ -359,16 +400,17 @@ local function plugin_key(name_space, stem)
 end
 
 local function should_start_plugin_enabled(plug)
-	return not disabled_plugins[plug.fileName]
+	return has_disabled_plugins_state and not disabled_plugins[plug.fileName]
 end
 
 local function should_start_mode_enabled(plug)
 	return plug.fileName == hook.persistentMode
 end
 
-local function reconcile_disabled_plugins()
-	for _, plug in pairs(hook.plugins) do
-		if plug.nameSpace == "plugins" then
+local function reconcile_disabled_plugins(touched)
+	for _, key in ipairs(sorted_keys(hook.plugins)) do
+		local plug = hook.plugins[key]
+		if plug.nameSpace == "plugins" and not (touched and touched[plug.fileName]) then
 			local should_enable = should_start_plugin_enabled(plug)
 			if should_enable and not plug.isEnabled then
 				if plug:enable(false) then
@@ -389,7 +431,8 @@ local function discover_in_namespace(name_space, is_enabled_func)
 	local error_count = 0
 
 	local entries = collect_entries(name_space)
-	for stem, entry in pairs(entries) do
+	for _, stem in ipairs(sorted_keys(entries)) do
+		local entry = entries[stem]
 		local key = plugin_key(name_space, stem)
 		if not hook.plugins[key] then
 			local plug = new_plugin(name_space, stem)
@@ -461,12 +504,12 @@ local function plugin_from_path(path)
 		if path:startsWith(name_space .. "/") then
 			local relative = path:sub(#name_space + 2)
 			local single = relative:match("^([^/]+)%.lua$")
-			if single then
+			if valid_stem(single) then
 				return name_space, single
 			end
 
 			local folder = relative:match("^([^/]+)/")
-			if folder then
+			if valid_stem(folder) then
 				return name_space, folder
 			end
 		end
@@ -494,21 +537,27 @@ local function apply_patch(changed_paths)
 		end
 	end
 
+	-- Read disable state before discovering or reloading any entry in this batch.
+	if disabled_plugins_changed then
+		if not load_disabled_plugins() then
+			return false
+		end
+		for _, key in ipairs(sorted_keys(hook.plugins)) do
+			local plug = hook.plugins[key]
+			if plug.nameSpace == "plugins" and disabled_plugins[plug.fileName] then
+				plug:disable(false)
+			end
+		end
+	end
+
 	local entries_by_namespace = {
 		plugins = collect_entries("plugins"),
 		modes = collect_entries("modes"),
 	}
 
-	local function should_start_enabled(name_space, plug)
-		if name_space == "modes" then
-			return should_start_mode_enabled(plug)
-		end
-
-		return should_start_plugin_enabled(plug)
-	end
-
-	for name_space, touched_names in pairs(touched) do
-		for name, _ in pairs(touched_names) do
+	for _, name_space in ipairs(sorted_keys(touched)) do
+		local touched_names = touched[name_space]
+		for _, name in ipairs(sorted_keys(touched_names)) do
 			local key = plugin_key(name_space, name)
 			local plug = hook.plugins[key]
 			local entry = entries_by_namespace[name_space] and entries_by_namespace[name_space][name] or nil
@@ -524,31 +573,28 @@ local function apply_patch(changed_paths)
 				plug.fullFileName = entry.fullFileName
 
 				if entry_still_exists(plug.entryPath) then
-					plug:reload()
-					print_scoped("Reloaded " .. name_space .. " " .. name)
+					local is_enabled
+					if name_space == "plugins" then
+						is_enabled = should_start_plugin_enabled(plug)
+					else
+						is_enabled = should_start_mode_enabled(plug)
+					end
+					if plug:reload(is_enabled) then
+						print_scoped("Reloaded " .. name_space .. " " .. name)
+					else
+						print_scoped("Failed to reload " .. name_space .. " " .. name)
+					end
 				else
 					plug:disable(false)
 					hook.plugins[key] = nil
 					print_scoped("Removed " .. name_space .. " " .. name)
 				end
-			else
-				local new_plug = new_plugin(name_space, name)
-				new_plug.entryPath = entry.path
-				new_plug.fullFileName = entry.fullFileName
-				hook.plugins[key] = new_plug
-
-				local ok = new_plug:load(should_start_enabled(name_space, new_plug), false)
-				if ok then
-					print_scoped("Loaded new " .. name_space .. " " .. name)
-				else
-					hook.plugins[key] = nil
-				end
 			end
 		end
 	end
 
-	if disabled_plugins_changed and load_disabled_plugins() then
-		reconcile_disabled_plugins()
+	if disabled_plugins_changed then
+		reconcile_disabled_plugins(touched.plugins)
 	end
 
 	discoverNewPlugins()
