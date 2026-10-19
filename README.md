@@ -53,6 +53,9 @@ Current runtime behavior uses config such as:
 - `defaultGameMode`
 
 If no persistent mode is already set, `defaultGameMode` becomes the initial mode.
+`rs_integration` resolves this fallback from the captured client `config.yml` before
+selecting mode assets. Core receives that effective mode through the existing
+persistent-mode field and starts it instead of choosing a different local default.
 
 Plugin enablement persistence follows the RosaServerCore pattern:
 

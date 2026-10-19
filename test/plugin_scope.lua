@@ -16,12 +16,13 @@ function concatVarArgs(separator, ...)
 	return table.concat(values, separator)
 end
 
-local function reset(next_files, next_paths)
+local function reset(next_files, next_paths, persistent_mode)
 	files = next_files
 	script_paths = next_paths
 	evaluated, enabled, disabled, events = {}, {}, {}, {}
 	config = { plugins = {}, defaultGameMode = "active" }
 	hook = nil
+	__src_persistent_mode = persistent_mode or ""
 	dofile("main/hook.lua")
 	__src_read_file = function(path) return files[path] end
 	__src_list_scripts = function() return script_paths end
@@ -62,6 +63,14 @@ end
 local function assert_list(values, expected, message)
 	assert(table.concat(values, ",") == table.concat(expected, ","), message)
 end
+
+-- The server-resolved default mode owns the assets in the received snapshot.
+reset({
+	['modes/selected/init.lua'] = source('selected'),
+	['modes/active/init.lua'] = source('wrong-default'),
+}, { 'modes/selected/init.lua', 'modes/active/init.lua' }, 'selected').loadPlugins()
+assert_list(evaluated, { 'selected' }, 'published mode takes precedence over client default')
+assert(hook.persistentMode == 'selected' and hook.plugins['modes:selected'].isEnabled)
 
 -- Discovered owner stems are strict, sorted, and use init.lua deterministically.
 local initial_files = {
