@@ -4,8 +4,27 @@
 
 -- Globals exposed to synced client Lua by the SRC client runtime.
 -- The runtime is sandboxed: package, io, debug, ffi and jit are removed,
--- os only provides os.clock, and loadfile/dofile/require resolve against the
+-- os only provides os.time, os.date and os.clock; loadfile/dofile/require resolve against the
 -- synced script set (paths relative to scripts/, dots map to slashes).
+
+---Restricted standard Lua OS library. No other OS functions are exposed.
+os = {}
+
+---Current Unix timestamp, or convert a local civil-date table to a Unix timestamp.
+---A date table uses year/month/day and optional hour/min/sec/isdst fields.
+---@param date? table Local civil date, using the client machine timezone.
+---@return integer timestamp Unix seconds.
+function os.time(date) end
+
+---Format a Unix timestamp. Prefix the format with ! for UTC; *t returns a date table.
+---@param format? string Defaults to %c in the client machine timezone.
+---@param timestamp? integer Defaults to the current Unix time.
+---@return string|table date
+function os.date(format, timestamp) end
+
+---CPU time used by the process, in seconds. This is not a wall clock.
+---@return number seconds
+function os.clock() end
 
 ---Key was just released this tick.
 KEY_UP = 0
