@@ -273,6 +273,7 @@ end
 
 do
 	---All repositionable HUD widgets; accessed through client.hud.
+	---All widget settings reset to defaults when the Lua runtime is rebuilt, including mode-change resyncs.
 	---@class SrcHudWidgets
 	---@field inventory SrcInventoryWidgets
 	---@field minimap SrcMinimapWidget
@@ -349,7 +350,7 @@ do
 	---@field isMapToggled integer Whether the fullscreen map is open.
 	---@field isInGame integer Whether the client is in a game.
 	---@field menuState integer The game's current menu state.
-	---@field enableMouse boolean Whether the game cursor is enabled.
+	---@field enableMouse boolean Whether the game cursor is enabled. Resets to false when the Lua runtime resets.
 	---@field mouse SrcMouse 🔒 Current cursor position and mouse buttons.
 	---@field isTabMenu integer Whether the tab (player list) menu is open.
 	---@field isPauseMenu integer 🔒 Whether the pause menu is open.
@@ -399,7 +400,7 @@ do
 	---DrawMap uses map drawing coordinates. Convert world positions explicitly with getMapCoordinates.
 	---@class SrcRenderer
 	---@field textFont NativeFont The font used by drawText. Must come from the fonts[] table and be loaded.
-	---@field enableHead boolean Whether the first person head/body is rendered.
+	---@field enableHead boolean Whether the first person head/body is rendered. Resets to false when the Lua runtime resets.
 	---@field menu SrcRendererMenu 🔒 In-game menu widget API. Only usable inside DrawMenuItems or PostDrawMenuItems.
 	local SrcRenderer
 
@@ -755,6 +756,7 @@ end
 do
 	---Sound API exposed by the client runtime; only one instance in the global
 	---variable `sounds`.
+	---Playback started through this API is stopped when the Lua runtime resets.
 	---@class SrcSounds
 	local SrcSounds
 
