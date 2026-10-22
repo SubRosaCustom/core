@@ -994,6 +994,8 @@ do
 	---@field throwPitch number Current pitch of item being thrown. Radians.
 	---@field damage integer Level of screen blackness, 0-60.
 	---@field pos Vector Position.
+	---@field interpPos Vector 🔒 Interpolated root-bone render position.
+	---@field interpRot RotMatrix 🔒 Interpolated root-bone render rotation.
 	---@field viewYaw number Radians.
 	---@field viewPitch number Radians.
 	---@field viewYaw2 number Radians.
@@ -1062,6 +1064,8 @@ do
 	---@field class string 🔒 "Bone"
 	---@field rigidBody RigidBody 🔒 The rigid body simulating this bone.
 	---@field pos Vector Position.
+	---@field interpPos Vector 🔒 Interpolated bone render position.
+	---@field interpRot RotMatrix 🔒 Interpolated bone render rotation.
 	---@field pos2 Vector Second position.
 	---@field vel Vector Velocity.
 	---@field rot RotMatrix Rotation.
@@ -1094,6 +1098,8 @@ do
 	---@field localIndex integer 🔒 The bone index this body belongs to, if any.
 	---@field mass number In kilograms, kind of.
 	---@field pos Vector Position.
+	---@field interpPos Vector? 🔒 Render position snapshot for the owning human bone, item, vehicle body, or wheel. Nil for inactive bodies or bodies without a mapped render transform.
+	---@field interpRot RotMatrix? 🔒 Render rotation snapshot for the owning human bone, item, vehicle body, or wheel. Nil for inactive bodies or bodies without a mapped render transform.
 	---@field vel Vector Velocity.
 	---@field rot RotMatrix Rotation.
 	---@field rotVel RotMatrix Rotational velocity.
