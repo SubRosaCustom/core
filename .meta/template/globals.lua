@@ -423,7 +423,10 @@ function discoverNewPlugins() end
 function onServerEvent(name, fn) end
 
 ---Emit a client-to-server SRC event.
----Protocol 8 fragments and retries events over UDP. Delivery is unordered.
+---Protocol 10 fragments and retries events over UDP. Delivery is unordered.
+---Each native send flushes queued fragments and receipts in up to eight size-bounded datagrams
+---per peer (at most 9,600 bytes); congestion limits may stop the flush sooner.
+---No extra transport pacing timer is imposed; congestion windows and retry deadlines still apply.
 ---The complete encoded argument block is limited to 256 KiB, including serialization overhead.
 ---The server may advertise a lower limit; oversized events and full queues return false.
 ---Queue acceptance does not guarantee remote processing.
@@ -434,6 +437,17 @@ function onServerEvent(name, fn) end
 ---@param ... SrcEventValue The event arguments.
 ---@return boolean success Whether the event was queued for sending.
 function emitServerEvent(name, ...) end
+
+---Send replaceable latest state over UDP (protocol 10).
+---A newer unsent value replaces the older value for the same event name.
+---No delivery receipts, processing results or retries. Loss may drop the final update.
+---Receivers discard older sequence IDs; delivery across different names is unordered.
+---At most 32 distinct latest-state names per session; encoded arguments must fit 485 bytes.
+---Uses onClientEvent on the server. Keep permissions and lifecycle actions on emitServerEvent.
+---@param name string
+---@param ... SrcEventValue
+---@return boolean queued Queue acceptance only.
+function emitServerEventLatest(name, ...) end
 
 ---Wrap a byte string so it is sent through events as a binary payload
 ---instead of a plain string.
@@ -454,6 +468,13 @@ __src_persistent_mode = ""
 ---@param argsBytes string
 ---@return boolean success
 function __src_emit_server_event(eventName, eventHash, argsBytes) end
+
+---Internal pre-encoded latest-state emitter. Use emitServerEventLatest.
+---@param eventName string
+---@param eventHash string
+---@param argsBytes string
+---@return boolean queued
+function __src_emit_server_event_latest(eventName, eventHash, argsBytes) end
 
 ---🚫 Internal. Dispatch an encoded server event through core handlers.
 ---@param eventHash string The encoded event-name hash.

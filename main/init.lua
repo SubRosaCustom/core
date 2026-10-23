@@ -80,7 +80,7 @@ function onServerEvent(name, fn)
 	table.insert(handlers[hash], fn)
 end
 
-function emitServerEvent(name, ...)
+local function emit_server_event(emit, name, ...)
 	assert(type(name) == "string" and name ~= "", "emitServerEvent(name, ...): name must be non-empty string")
 	local hash = event_codec.hashName(name)
 	local existing_name = server_event_names_by_hash[hash]
@@ -92,7 +92,14 @@ function emitServerEvent(name, ...)
 	local args_bytes, encode_error = event_codec.encodeArgs(...)
 	assert(args_bytes ~= nil, "emitServerEvent(name, ...): " .. tostring(encode_error))
 
-	return __src_emit_server_event(name, hash, args_bytes)
+	return emit(name, hash, args_bytes)
+end
+
+function emitServerEvent(name, ...)
+	return emit_server_event(__src_emit_server_event, name, ...)
+end
+function emitServerEventLatest(name, ...)
+	return emit_server_event(__src_emit_server_event_latest, name, ...)
 end
 
 function __src_dispatch_server_event(hash, args_bytes)
