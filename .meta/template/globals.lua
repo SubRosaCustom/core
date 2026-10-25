@@ -2,6 +2,10 @@
 --# selene: allow(unscoped_variables)
 ---@meta
 
+-- Metadata follows this local checkout. Published baseline checked on 2026-10-25:
+-- 47dda126fed8509bb3bd67cca68f8d9d3b22de82 (control protocol 9). LOCAL-ONLY notes identify
+-- additions or behavior absent from that baseline; they are not release guarantees.
+
 -- Globals exposed to synced client Lua by the SRC client runtime.
 -- The runtime is sandboxed: package, io, debug, ffi and jit are removed,
 -- os only provides os.time, os.date and os.clock; loadfile/dofile/require resolve against the
@@ -417,13 +421,16 @@ function discoverNewPlugins() end
 
 ---Register a handler for a server-to-client SRC event.
 ---The handler receives the decoded event arguments.
+---Registrations during plugin entry evaluation or enable handlers belong to that plugin;
+---disabled owners do not receive events. A hash collision throws.
 ---Provided by the core runtime (main/init.lua).
 ---@param name string The event name.
 ---@param fn fun(...: SrcEventValue) The handler function.
 function onServerEvent(name, fn) end
 
 ---Emit a client-to-server SRC event.
----Protocol 10 fragments and retries events over UDP. Delivery is unordered.
+---Ordinary reliable events exist in the published baseline; delivery is unordered.
+---LOCAL-ONLY transport policy below describes protocol 10, not published protocol 9.
 ---Each native send flushes queued fragments and receipts in up to eight size-bounded datagrams
 ---per peer (at most 9,600 bytes); congestion limits may stop the flush sooner.
 ---No extra transport pacing timer is imposed; congestion windows and retry deadlines still apply.
@@ -438,7 +445,8 @@ function onServerEvent(name, fn) end
 ---@return boolean success Whether the event was queued for sending.
 function emitServerEvent(name, ...) end
 
----Send replaceable latest state over UDP (protocol 10).
+---LOCAL-ONLY API: absent from the published protocol-9 baseline.
+---Send replaceable latest state over UDP (protocol 10); requires matching client/integration.
 ---A newer unsent value replaces the older value for the same event name.
 ---No delivery receipts, processing results or retries. Loss may drop the final update.
 ---Receivers discard older sequence IDs; delivery across different names is unordered.
@@ -469,7 +477,8 @@ __src_persistent_mode = ""
 ---@return boolean success
 function __src_emit_server_event(eventName, eventHash, argsBytes) end
 
----Internal pre-encoded latest-state emitter. Use emitServerEventLatest.
+---LOCAL-ONLY internal protocol-10 emitter; absent from the published baseline.
+---Use emitServerEventLatest.
 ---@param eventName string
 ---@param eventHash string
 ---@param argsBytes string

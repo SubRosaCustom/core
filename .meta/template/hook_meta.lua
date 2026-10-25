@@ -2,9 +2,13 @@
 --# selene: allow(unscoped_variables)
 ---@meta
 
+-- See globals.lua for the published baseline and LOCAL-ONLY availability notes.
+
 ---Return hook.continue (1) to stop running later handlers and report no override.
 ---Return hook.override (2) to stop running later handlers and report an override.
 ---Return nil to let the remaining handlers run.
+---Only PlayerControlHandler and WriteClientData use an override to suppress native work
+---in the checked client. Other native hooks still run their game operation.
 ---@alias HookReturn 1 | 2 | nil
 ---@alias HookNoOverride 1 | nil
 
@@ -61,7 +65,8 @@
 ---Called when the in-game HUD is drawn. Use for renderer 2D drawing.
 ---@alias hooks.DrawUI fun(): HookReturn
 
----Called when the game is about to exit.
+---Called when the game is about to exit. Native session cleanup and exit always continue.
+---hook.override stops later Lua handlers; it does not cancel exiting.
 ---@alias hooks.ExitGameCall fun(): HookReturn
 
 ---Called before the game's player control handling runs for the local player.

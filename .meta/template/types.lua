@@ -2,6 +2,8 @@
 --# selene: allow(unscoped_variables)
 ---@meta
 
+-- See globals.lua for the published baseline and LOCAL-ONLY availability notes.
+
 do
 	---Represents a 3D point in the level.
 	---@class Vector
@@ -317,6 +319,23 @@ do
 	---@field rotateWithMap? boolean Whether an icon rotates with the map.
 	local BlipOptions
 
+	---Only supplied fields change; the named blip must already exist.
+	---@class main.blips.BlipUpdateOptions
+	---@field worldX? number World X coordinate.
+	---@field worldZ? number World Z coordinate.
+	---@field r? number Red color component from 0 to 1.
+	---@field g? number Green color component from 0 to 1.
+	---@field b? number Blue color component from 0 to 1.
+	---@field a? number Alpha component from 0 to 1.
+	---@field size? number Shape radius, icon dimensions divided by two, or text size.
+	---@field shape? main.blips.ShapeName Geometric fallback shape.
+	---@field yaw? number Rotation in radians.
+	---@field clamp? boolean Whether to clamp the blip to the map boundary.
+	---@field icon? TextureDescriptor PNG texture to draw.
+	---@field text? string Text to draw when no valid icon is set.
+	---@field rotateWithMap? boolean Whether an icon rotates with the map.
+	local BlipUpdateOptions
+
 	---@class main.blips.Blip: main.blips.BlipOptions
 	---@field name string
 	---@field r number
@@ -334,7 +353,7 @@ do
 	---@field shape table<main.blips.ShapeName, main.blips.ShapeName>
 	---@field add fun(self: main.blips.BlipsLib, name: string, options: main.blips.BlipOptions)
 	---@field remove fun(self: main.blips.BlipsLib, name: string)
-	---@field update fun(self: main.blips.BlipsLib, name: string, options: main.blips.BlipOptions)
+	---@field update fun(self: main.blips.BlipsLib, name: string, options: main.blips.BlipUpdateOptions)
 	---@field get fun(self: main.blips.BlipsLib, name: string): main.blips.Blip?
 	local BlipsLib
 end
@@ -370,7 +389,7 @@ end
 do
 	---@class SrcMouse
 	---@field pos Vector 🔒 Cursor position in the 1024x576 canvas; Z is zero.
-	---@field delta Vector Mouse-look delta for this tick; X/Y are scaled game sensitivity values.
+	---@field delta Vector 🔒 Mouse-look snapshot; changing its components does not write native input. Use client.mouseDeltaX/Y.
 	---@field leftClick boolean 🔒 Whether the left mouse button is down.
 	---@field rightClick boolean 🔒 Whether the right mouse button is down.
 	local SrcMouse
@@ -401,7 +420,7 @@ do
 	---@class SrcRenderer
 	---@field textFont NativeFont The font used by drawText. Must come from the fonts[] table and be loaded.
 	---@field enableHead boolean Whether the first person head/body is rendered. Resets to false when the Lua runtime resets.
-	---@field menu SrcRendererMenu 🔒 In-game menu widget API. Only usable inside DrawMenuItems or PostDrawMenuItems.
+	---@field menu SrcRendererMenu 🔒 Native menu widget API; use a menu context such as DrawMenuItems or DrawPlayerMenus.
 	local SrcRenderer
 
 	---Clip subsequent screen-space drawing to a canvas rectangle (1024x576, top-left origin).
@@ -416,17 +435,18 @@ do
 	---Restore the scissor state before the matching beginScissor.
 	function SrcRenderer:endScissor() end
 
-	---Draw text on the screen.
-	---Only usable inside drawing hooks such as DrawUI.
+	---Draw text on the screen, or in world space with params bit 0x80.
+	---For world text, use Draw3D and pushWorldTransform/popWorldTransform; size is in world units.
+	---Screen text is normally drawn in DrawUI, with size in screen units.
 	---@param text string The text to draw.
-	---@param x number Screen X position.
-	---@param y number Screen Y position.
-	---@param size number Text size.
+	---@param x number Screen X, or local X with world-space flag.
+	---@param y number Screen Y, or local Y with world-space flag.
+	---@param size number Text size in screen or world units.
 	---@param r number Red color component (0-1).
 	---@param g number Green color component (0-1).
 	---@param b number Blue color component (0-1).
 	---@param a number Alpha component (0-1).
-	---@param params integer Text style/alignment bit flags.
+	---@param params integer Text flags; 0x80 world space, 0x1 center X, 0x2 right align, 0x20 shadow.
 	function SrcRenderer:drawText(text, x, y, size, r, g, b, a, params) end
 
 	---Project through client.camera onto the game's 1024x576 canvas (top-left origin).
@@ -597,18 +617,21 @@ do
 	function SrcRenderer:loadTexture(path) end
 
 	---Draw a texture in screen space.
-	---Width/height default to the texture's own size.
+	---Use exactly 3, 5 or 10 arguments after self. The shortest form uses the texture size;
+	---the 5-argument form uses white with top-left alignment. Supply all color/flag values in the full form.
 	---@param texture TextureDescriptor The texture to draw. Must come from the textures[] table.
 	---@param x number Screen X position.
 	---@param y number Screen Y position.
-	---@param width? number Drawn width.
-	---@param height? number Drawn height.
-	---@param r? number Red color component (0-1). Defaults to 1.
-	---@param g? number Green color component (0-1). Defaults to 1.
-	---@param b? number Blue color component (0-1). Defaults to 1.
-	---@param a? number Alpha component (0-1). Defaults to 1.
-	---@param flags? integer DRAW_TEXTURE_ALIGN_* alignment flags. Defaults to 0 (top left).
+	---@param width number Drawn width.
+	---@param height number Drawn height.
+	---@param r number Red color component (0-1). Defaults to 1.
+	---@param g number Green color component (0-1). Defaults to 1.
+	---@param b number Blue color component (0-1). Defaults to 1.
+	---@param a number Alpha component (0-1). Defaults to 1.
+	---@param flags integer DRAW_TEXTURE_ALIGN_* alignment flags. Defaults to 0 (top left).
 	---@return boolean drawn Whether the texture was valid and drawn.
+	---@overload fun(self: SrcRenderer, texture: TextureDescriptor, x: number, y: number): boolean
+	---@overload fun(self: SrcRenderer, texture: TextureDescriptor, x: number, y: number, width: number, height: number): boolean
 	function SrcRenderer:drawTexture(texture, x, y, width, height, r, g, b, a, flags) end
 
 	---Draw a texture as a quad in the current world transform space.
@@ -627,21 +650,25 @@ do
 	function SrcRenderer:drawWorldTexture(texture, x, y, width, height, r, g, b, a, flags) end
 
 	---Draw a texture in screen space, rotated around its center.
+	---Omit every color component for white, or supply all four components.
 	---@param texture TextureDescriptor The texture to draw. Must come from the textures[] table.
 	---@param x number Screen X position of the center.
 	---@param y number Screen Y position of the center.
 	---@param width number Drawn width.
 	---@param height number Drawn height.
 	---@param yaw number Rotation angle in radians.
-	---@param r? number Red color component (0-1). Defaults to 1.
-	---@param g? number Green color component (0-1). Defaults to 1.
-	---@param b? number Blue color component (0-1). Defaults to 1.
-	---@param a? number Alpha component (0-1). Defaults to 1.
+	---@param r number Red color component (0-1). Defaults to 1.
+	---@param g number Green color component (0-1). Defaults to 1.
+	---@param b number Blue color component (0-1). Defaults to 1.
+	---@param a number Alpha component (0-1). Defaults to 1.
 	---@return boolean drawn Whether the texture was valid and drawn.
+	---@overload fun(self: SrcRenderer, texture: TextureDescriptor, x: number, y: number, width: number, height: number, yaw: number): boolean
 	function SrcRenderer:drawTextureRotated2D(texture, x, y, width, height, yaw, r, g, b, a) end
 
 	---Load a CMO from its exact synced asset path and assign it a model ID for renderObject.
 	---The .cmo suffix is optional. Cached per name.
+	---Uses native model IDs 1001-1023 (23 slots) until the client Lua runtime resets.
+	---Cached names reuse their ID even when full. Exhaustion returns -1; failed imports can consume a slot.
 	---@param name string The CMO path, ex. "data/model/foo.cmo".
 	---@return integer modelId The assigned model ID, or -1 on failure.
 	function SrcRenderer:loadCMO(name) end
@@ -687,8 +714,8 @@ do
 	---@field nextMenuItemSizeY number Height of the next menu item.
 	---@field textScale number 🔒 Active native menu text scale.
 	---Native menu widgets and menu:text drawn between these calls are clipped and scroll with the panel.
-	---@field beginScrollablePanel fun(label: string, x: number, y: number, width: number, height: number): boolean Open a native scrollable panel. Returns false when the native panel table is full.
-	---@field endScrollablePanel fun(): boolean Close the current native scrollable panel. Returns whether its close button was pressed.
+	---@field beginScrollablePanel fun(self: SrcRendererMenu, label: string, x: number, y: number, width: number, height: number): boolean Open a native scrollable panel. Returns false when the native panel table is full.
+	---@field endScrollablePanel fun(self: SrcRendererMenu): boolean Close the current native scrollable panel. Returns whether its close button was pressed.
 	---@field checkbox fun(self: SrcRendererMenu, label: string, value: boolean): boolean, boolean Draw a checkbox. Returns the new value and whether it changed.
 	---@field intSlider fun(self: SrcRendererMenu, label: string, value: integer, min: integer, max: integer): integer, boolean Draw an integer slider. Returns the new value and whether it changed.
 	---@field floatSlider fun(self: SrcRendererMenu, label: string, value: number, min: number, max: number): number, boolean Draw a float slider. Returns the new value and whether it changed. Throws on platforms where it is not available yet.
@@ -769,18 +796,22 @@ do
 	function SrcSounds:loadSound(path, maxDistance) end
 
 	---Play a loaded sound attached to the listener.
+	---Supply both volume and pitch, or omit both to use 1.0.
 	---@param soundId integer A sound slot returned by loadSound.
-	---@param volume? number The volume, where 1.0 is standard.
-	---@param pitch? number The pitch, where 1.0 is standard.
+	---@param volume number The volume, where 1.0 is standard.
+	---@param pitch number The pitch, where 1.0 is standard.
 	---@return AudioEmitter? emitter The emitter, or nil when no slot is available.
+	---@overload fun(self: SrcSounds, soundId: integer): AudioEmitter?
 	function SrcSounds:playSound(soundId, volume, pitch) end
 
 	---Play a loaded sound at a world position.
+	---Supply both volume and pitch, or omit both to use 1.0.
 	---@param soundId integer A sound slot returned by loadSound.
 	---@param position Vector The world position to play at.
-	---@param volume? number The volume, where 1.0 is standard.
-	---@param pitch? number The pitch, where 1.0 is standard.
+	---@param volume number The volume, where 1.0 is standard.
+	---@param pitch number The pitch, where 1.0 is standard.
 	---@return integer emitterId The emitter playing the sound, or -1 if it could not be determined.
+	---@overload fun(self: SrcSounds, soundId: integer, position: Vector): integer
 	function SrcSounds:playSound3D(soundId, position, volume, pitch) end
 
 	---Stop a playing sound emitter.
@@ -823,7 +854,7 @@ end
 
 do
 	---A binary payload for SRC events, created with blob().
-	---Offsets are 1-based. Readers return nil when out of range.
+	---Offsets are 1-based; omitted or zero offsets select byte 1. Readers return nil when out of range.
 	---#blob -> size in bytes
 	---@class SrcBlob
 	local SrcBlob
@@ -845,54 +876,85 @@ do
 	function SrcBlob:sub(offset, count) end
 
 	---Read a signed 1-byte integer.
-	---@param offset integer The 1-based offset.
+	---@param offset? integer The 1-based offset. Defaults to 1; offset 0 also selects the first byte.
 	---@return integer? value
 	function SrcBlob:readByte(offset) end
 
 	---Read an unsigned 1-byte integer.
-	---@param offset integer The 1-based offset.
+	---@param offset? integer The 1-based offset. Defaults to 1; offset 0 also selects the first byte.
 	---@return integer? value
 	function SrcBlob:readUByte(offset) end
 
 	---Read a signed big-endian 2-byte integer.
-	---@param offset integer The 1-based offset.
+	---@param offset? integer The 1-based offset. Defaults to 1; offset 0 also selects the first byte.
 	---@return integer? value
 	function SrcBlob:readShort(offset) end
 
 	---Read an unsigned big-endian 2-byte integer.
-	---@param offset integer The 1-based offset.
+	---@param offset? integer The 1-based offset. Defaults to 1; offset 0 also selects the first byte.
 	---@return integer? value
 	function SrcBlob:readUShort(offset) end
 
 	---Read a signed big-endian 4-byte integer.
-	---@param offset integer The 1-based offset.
+	---@param offset? integer The 1-based offset. Defaults to 1; offset 0 also selects the first byte.
 	---@return integer? value
 	function SrcBlob:readInt(offset) end
 
 	---Read an unsigned big-endian 4-byte integer.
-	---@param offset integer The 1-based offset.
+	---@param offset? integer The 1-based offset. Defaults to 1; offset 0 also selects the first byte.
 	---@return integer? value
 	function SrcBlob:readUInt(offset) end
 
 	---Read a signed big-endian 8-byte integer.
-	---@param offset integer The 1-based offset.
+	---@param offset? integer The 1-based offset. Defaults to 1; offset 0 also selects the first byte.
 	---@return integer? value
 	function SrcBlob:readLong(offset) end
 
 	---Read an unsigned big-endian 8-byte integer.
-	---@param offset integer The 1-based offset.
+	---@param offset? integer The 1-based offset. Defaults to 1; offset 0 also selects the first byte.
 	---@return integer? value
 	function SrcBlob:readULong(offset) end
 
 	---Read a big-endian single-precision float.
-	---@param offset integer The 1-based offset.
+	---@param offset? integer The 1-based offset. Defaults to 1; offset 0 also selects the first byte.
 	---@return number? value
 	function SrcBlob:readFloat(offset) end
 
 	---Read a big-endian double-precision float.
-	---@param offset integer The 1-based offset.
+	---@param offset? integer The 1-based offset. Defaults to 1; offset 0 also selects the first byte.
 	---@return number? value
 	function SrcBlob:readDouble(offset) end
+
+	---Alias of size.
+	---@return integer size
+	function SrcBlob:len() end
+
+	---Alias of size.
+	---@return integer size
+	function SrcBlob:length() end
+
+	---Alias of bytes; returns raw byte strings without decoding.
+	---@param offset? integer Defaults to 1.
+	---@param count? integer Defaults to the remaining bytes.
+	---@return string? bytes
+	function SrcBlob:readBytes(offset, count) end
+
+	---Alias of bytes; returns raw byte strings without decoding.
+	---@param offset? integer Defaults to 1.
+	---@param count? integer Defaults to the remaining bytes.
+	---@return string? bytes
+	function SrcBlob:readString(offset, count) end
+
+	---Alias of bytes; returns raw byte strings without decoding.
+	---@param offset? integer Defaults to 1.
+	---@param count? integer Defaults to the remaining bytes.
+	---@return string? bytes
+	function SrcBlob:raw(offset, count) end
+
+	---Alias of readUByte, not the signed readByte.
+	---@param offset? integer Defaults to 1.
+	---@return integer? value
+	function SrcBlob:byte(offset) end
 end
 
 ---Represents a networked action sent from a player.
@@ -907,7 +969,7 @@ do
 	---Represents a player in the current game, who may or may not be spawned in.
 	---@class Player
 	---@field class string 🔒 "Player"
-	---@field data table A Lua table which persists for the lifespan of the runtime.
+	---@field data table 🔒 Mutable contents persist for the runtime; the table property itself cannot be replaced.
 	---@field index integer 🔒 The index of the array in memory this is.
 	---@field isActive boolean Whether this exists, only change if you know what you are doing.
 	---@field name string Nickname of this player.
@@ -981,7 +1043,7 @@ do
 	---Represents a human, including dead bodies.
 	---@class Human
 	---@field class string 🔒 "Human"
-	---@field data table A Lua table which persists for the lifespan of the runtime.
+	---@field data table 🔒 Mutable contents persist for the runtime; the table property itself cannot be replaced.
 	---@field index integer 🔒 The index of the array in memory this is.
 	---@field isActive boolean Whether this exists, only change if you know what you are doing.
 	---@field stamina integer
@@ -1090,7 +1152,7 @@ do
 	---Represents a rigid body currently in use by the physics engine.
 	---@class RigidBody
 	---@field class string 🔒 "RigidBody"
-	---@field data table A Lua table which persists for the lifespan of the runtime.
+	---@field data table 🔒 Mutable contents persist for the runtime; the table property itself cannot be replaced.
 	---@field index integer 🔒 The index of the array in memory this is.
 	---@field isActive boolean Whether this exists, only change if you know what you are doing.
 	---@field type integer 🔒 0 = bone, 1 = car body, 2 = wheel, 3 = item.
@@ -1141,7 +1203,7 @@ do
 	---Represents an item in the world or someone's inventory.
 	---@class Item
 	---@field class string 🔒 "Item"
-	---@field data table A Lua table which persists for the lifespan of the runtime.
+	---@field data table 🔒 Mutable contents persist for the runtime; the table property itself cannot be replaced.
 	---@field index integer 🔒 The index of the array in memory this is.
 	---@field isActive boolean Whether this exists, only change if you know what you are doing.
 	---@field type ItemType 🔒 The native item type. Assignment raises an error in the client runtime.
@@ -1247,7 +1309,7 @@ do
 	---Represents a car, train, or helicopter.
 	---@class Vehicle
 	---@field class string 🔒 "Vehicle"
-	---@field data table A Lua table which persists for the lifespan of the runtime.
+	---@field data table 🔒 Mutable contents persist for the runtime; the table property itself cannot be replaced.
 	---@field index integer 🔒 The index of the array in memory this is.
 	---@field isActive boolean Whether this exists, only change if you know what you are doing.
 	---@field type VehicleType
