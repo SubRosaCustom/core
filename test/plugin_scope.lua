@@ -212,5 +212,38 @@ assert(pool.isEnabled and #pool._server_event_handlers[1] == 1 and #pool._server
 assert(runtime.applyPatch({ "modes/pool/init.lua" }))
 assert(pool.isEnabled and #pool._server_event_handlers[1] == 1 and #pool._server_event_handlers[2] == 1)
 
+-- Hook diagnostics must survive collection for active callbacks without owning old definitions.
+reset({ ["modes/active/init.lua"] = source("active") }, { "modes/active/init.lua" }, "active").loadPlugins()
+local active_mode = hook.plugins["modes:active"]
+local function metadata_count()
+	local count = 0
+	for _ in pairs(hook._function_data) do
+		count = count + 1
+	end
+	return count
+end
+collectgarbage("collect")
+local initial_metadata_count = metadata_count()
+local old_callbacks = setmetatable({ active_mode.polyHooks.Logic[1].func }, { __mode = "v" })
+for _ = 1, 1000 do
+	assert(active_mode:reload(true))
+end
+collectgarbage("collect")
+assert(old_callbacks[1] == nil, "Hook metadata must release callbacks from old mode definitions")
+assert(metadata_count() == initial_metadata_count, "Repeated reloads must not accumulate hook metadata")
+local current_callback = active_mode.polyHooks.Logic[1].func
+assert(hook._function_data[current_callback].name == "active")
+assert(hook._function_data[current_callback].event_name == "Logic")
+events = {}
+hook.run("Logic")
+assert_list(events, { "active" }, "Active callback still runs after collection")
+for i = 1, 1000 do
+	local captured = { iteration = i, }
+	hook.add("Logic", "retention-test", function() return captured.iteration end)
+	hook.remove("Logic", "retention-test")
+end
+collectgarbage("collect")
+assert(metadata_count() == initial_metadata_count, "Removed named hooks must release their metadata")
+
 loadfile = native_loadfile
-print("scoped plugin lifecycle checks passed")
+print("scoped plugin lifecycle and hook metadata collection checks passed")

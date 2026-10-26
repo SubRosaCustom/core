@@ -1464,4 +1464,5 @@ function TextureAnimation:setSpeed(speed) end
 function TextureAnimation:setPlayback(playback) end
 ---@param direction integer 0 forward, 1 reverse.
 function TextureAnimation:setDirection(direction) end
+---Release the texture slot and CPU pixel buffers immediately. Safe to call repeatedly.
 function TextureAnimation:destroy() end

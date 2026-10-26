@@ -73,7 +73,8 @@ local _known_engine_events = {
 local _enabled_engine_events = {}
 local _next_order = 0
 
-hook._function_data = {}
+-- Metadata must not keep removed hooks or callbacks from old plugin definitions alive.
+hook._function_data = setmetatable({}, { __mode = "k", })
 hook._last_run_info = {}
 
 hook.continue = 1
