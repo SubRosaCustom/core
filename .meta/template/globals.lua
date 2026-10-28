@@ -142,6 +142,8 @@ function Texture.loadFromFile(path) end
 
 ---Load an evenly divided spritesheet from a synced texture asset.
 ---The animation owns a texture slot until destroy or runtime reset.
+---Images are limited to 64 MiB encoded and 4096 pixels per side. The client
+---limits retained animation pixels to 256 MiB, reserving room for a full frame.
 ---@param path string Synced image path.
 ---@param options TextureSpritesheetOptions Frame layout and playback settings.
 ---@return TextureAnimation animation
