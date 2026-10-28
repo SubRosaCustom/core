@@ -711,6 +711,7 @@ do
 	---In-game menu widget API; accessed through renderer.menu.
 	---Draw widgets inside a native menu hook, such as DrawPlayerMenus or DrawMenuItems.
 	---Widget layout is controlled with the nextMenuItem* fields before each call.
+	---These fields are restored after each menu draw hook, so they do not change the game menu layout.
 	---Call menu methods with a colon, for example renderer.menu:comboBox(...).
 	---@class SrcRendererMenu
 	---@field nextMenuItemKey integer Key of the next menu item.
