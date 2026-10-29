@@ -617,6 +617,8 @@ do
 	function SrcRenderer:loadTexture(path) end
 
 	---Draw a texture in screen space.
+	---Uses the supplied RGB color and the texture's alpha mask; texture RGB is ignored.
+	---Output alpha is texture alpha multiplied by a. The default color produces a white silhouette.
 	---Use exactly 3, 5 or 10 arguments after self. The shortest form uses the texture size;
 	---the 5-argument form uses white with top-left alignment. Supply all color/flag values in the full form.
 	---@param texture TextureDescriptor The texture to draw. Must come from the textures[] table.
@@ -635,6 +637,8 @@ do
 	function SrcRenderer:drawTexture(texture, x, y, width, height, r, g, b, a, flags) end
 
 	---Draw a texture as a quad in the current world transform space.
+	---Uses the supplied RGB color and the texture's alpha mask; texture RGB is ignored.
+	---Output alpha is texture alpha multiplied by a.
 	---Only usable inside Draw3D; position it with pushWorldTransform.
 	---@param texture TextureDescriptor The texture to draw. Must come from the textures[] table.
 	---@param x number Quad X position in the current transform.
@@ -650,6 +654,8 @@ do
 	function SrcRenderer:drawWorldTexture(texture, x, y, width, height, r, g, b, a, flags) end
 
 	---Draw a texture in screen space, rotated around its center.
+	---Uses the supplied RGB color and the texture's alpha mask; texture RGB is ignored.
+	---Output alpha is texture alpha multiplied by a. The default color produces a white silhouette.
 	---Omit every color component for white, or supply all four components.
 	---@param texture TextureDescriptor The texture to draw. Must come from the textures[] table.
 	---@param x number Screen X position of the center.
