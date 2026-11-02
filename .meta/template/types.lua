@@ -382,6 +382,7 @@ do
 	---@field ticksSinceReset integer 🔒 Server ticks since the last game reset.
 	---@field mouseDeltaX number Mouse yaw delta this tick, scaled by the game's mouse sensitivity.
 	---@field mouseDeltaY number Mouse pitch delta this tick, scaled by the game's mouse sensitivity.
+	---@field mouseWheelDelta integer Accumulated wheel notches since last reset; positive is away from the user. Write 0 after reading. Accumulates across Lua runtime resets.
 	---@field hud SrcHudWidgets 🔒 The repositionable HUD widgets.
 	local SrcLocalClient
 end
