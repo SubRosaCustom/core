@@ -311,6 +311,34 @@ particle = {}
 ---@return Particle emitter The created or existing emitter.
 function particle.new(name) end
 
+---Library for projected decals. A decal is a box that textures whatever the scene has inside it:
+---map geometry and every model already drawn. Attached decals follow their owner's interpolated
+---transform (a human bone, a vehicle body, or an item). Decals are client-only; network them
+---through events if other players should see them.
+---Decals are cleared on game reset, Lua runtime rebuild and sync reset, and when their owner is
+---removed. Each owner keeps at most decals.MAX_PER_OWNER decals, the world keeps at most
+---decals.MAX_WORLD, and the total is capped at decals.MAX_TOTAL; the oldest is evicted first.
+decals = {}
+
+---@type integer 🔒 Maximum number of world decals.
+decals.MAX_WORLD = 128
+---@type integer 🔒 Maximum number of decals attached to one human, vehicle or item.
+decals.MAX_PER_OWNER = 8
+---@type integer 🔒 Maximum number of decals in total.
+decals.MAX_TOTAL = 512
+
+---Create a decal.
+---@param options DecalOptions
+---@return Decal decal The created decal.
+function decals.create(options) end
+
+---Get the number of live decals.
+---@return integer count
+function decals.getCount() end
+
+---Destroy every decal.
+function decals.clear() end
+
 ---Library for using generic physics functions of the engine.
 physics = {}
 

@@ -1425,6 +1425,30 @@ do
 	local TextureDescriptor
 end
 
+---@class DecalOptions
+---@field texture TextureDescriptor A valid texture. Mipmapped textures are sampled at a distance-based level.
+---@field pos Vector World position of the decal centre, usually a hit position.
+---@field normal? Vector Surface normal the decal projects against; defaults to up (0, 1, 0).
+---@field size? Vector Width, height and projection depth in world units; defaults to (1, 1, 0.1). Each component must be between 0.001 and 64. Keep depth small so the decal does not reach nearby surfaces.
+---@field roll? number Rotation around the normal in radians; defaults to 0.
+---@field color? ColorRGBA Tint multiplied with the texture; defaults to white.
+---@field blend? "alpha"|"multiply" "alpha" (default) draws the lit texture over the surface; "multiply" darkens it, keeping the scene's own lighting.
+---@field attach? Human|Vehicle|Item Owner to follow; nil for a world decal.
+---@field bone? integer Human bone index 0-15 to follow; only with a Human owner. Defaults to the bone nearest pos.
+
+---@class Decal
+---@field class string 🔒 "Decal".
+---@field id integer 🔒 Unique id of the decal.
+---@field isValid boolean 🔒 False once the decal was destroyed, evicted, or lost its owner.
+local Decal
+
+---Change the tint. Does nothing if the decal is no longer valid.
+---@param color ColorRGBA
+function Decal:setColor(color) end
+
+---Remove the decal. Safe to call repeatedly.
+function Decal:destroy() end
+
 ---@class TextureSpritesheetOptions
 ---@field frameWidth? integer Frame width, or set columns.
 ---@field frameHeight? integer Frame height, or set rows.
