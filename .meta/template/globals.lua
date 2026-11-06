@@ -30,6 +30,54 @@ function os.date(format, timestamp) end
 ---@return number seconds
 function os.clock() end
 
+-- LuaJIT 2.1 has no integer subtype, string.pack family or math integer helpers, so the client
+-- provides them natively following the Lua 5.4 manual. Numbers are doubles: integer arguments must
+-- be exact integers inside the int64 range, and unpacked integers beyond 2^53 are rounded.
+
+---Pack values into a binary string following the Lua 5.4 `string.pack` format.
+---Options: `< > = ![n]`, `b B h H l L j J T`, `i[n] I[n]` (1..16 bytes), `f d n`, `s[n] z`, `c<n>`, `x`, `X<op>`.
+---@param fmt string
+---@param ... number|string
+---@return string packed
+function string.pack(fmt, ...) end
+
+---Unpack values from a binary string; the last result is the position after the last item read.
+---@param fmt string
+---@param s string
+---@param init? integer Start position; negative counts from the end. Defaults to 1.
+---@return any ... # Unpacked values followed by the next position.
+function string.unpack(fmt, s, init) end
+
+---Size in bytes of a string packed with `fmt`. Variable-length options (`s`, `z`) are rejected.
+---@param fmt string
+---@return integer size
+function string.packsize(fmt) end
+
+---`"integer"` for a number with an exact integer value in [-2^53, 2^53], `"float"` for any other number,
+---`nil` for a non-number. LuaJIT cannot distinguish `1` from `1.0`.
+---@param x any
+---@return "integer"|"float"|nil
+function math.type(x) end
+
+---The number, if it is a number or numeric string with an exact integer value in [-2^53, 2^53]; otherwise `nil`.
+---@param x any
+---@return integer|nil
+function math.tointeger(x) end
+
+---Compare two integers as unsigned values.
+---@param m integer
+---@param n integer
+---@return boolean
+function math.ult(m, n) end
+
+---Largest integer that doubles represent exactly (2^53), not the 2^63-1 of Lua 5.4.
+---@type integer
+math.maxinteger = 9007199254740992
+
+---Smallest integer that doubles represent exactly (-2^53).
+---@type integer
+math.mininteger = -9007199254740992
+
 ---Key was just released this tick.
 KEY_UP = 0
 ---Key is being held down this tick.
