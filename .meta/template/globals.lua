@@ -369,11 +369,11 @@ function particle.new(name) end
 decals = {}
 
 ---@type integer 🔒 Maximum number of world decals.
-decals.MAX_WORLD = 128
+decals.MAX_WORLD = 1024
 ---@type integer 🔒 Maximum number of decals attached to one human, vehicle or item.
-decals.MAX_PER_OWNER = 8
+decals.MAX_PER_OWNER = 32
 ---@type integer 🔒 Maximum number of decals in total.
-decals.MAX_TOTAL = 512
+decals.MAX_TOTAL = 2048
 
 ---Create a decal.
 ---@param options DecalOptions
