@@ -104,3 +104,38 @@ lua test/plugin_scope.lua
 - [`client`](https://github.com/SubRosaCustom/client): native client mod that hosts this Lua runtime, not public as of writing this as to prevent cheat development
 - [`rs_integration`](https://github.com/SubRosaCustom/rs_integration): server-side integration that syncs this repository to clients
 - [`RosaServerCore`](https://github.com/jpxs-intl/RosaServerCore): the closest upstream conceptual equivalent on the server side
+
+## Developer examples
+
+`modes/src_example/init.lua` handles navigation and lifecycle. Each `pageN.lua`
+contains its own lesson: menu functions, local camera controls, a CMO in a 2D
+panel, or world-to-screen projection. Set `defaultGameMode: src_example` in the
+synced client configuration for a fresh runtime without a persistent mode, then
+open the game menu and use the four page buttons. Existing persistent mode state
+wins over that setting. Page 3 defaults to `custom_ball.cmo`, which already exists
+at `src_test_mode/subrosacustom/assets/custom_ball.cmo` in this workspace. Use the
+example with that existing synced test bundle, or enter the exact path of a CMO
+in your own synced assets. This mode does not copy or supply an asset. Leaving a
+page clears its state and restores any captured camera state. The native CMO
+cache has no per-model unload API and lasts until runtime teardown.
+
+The admin example consists of exactly two implementation files:
+`plugins/srcAdminExample.lua` here and
+`rs_integration/plugins/srcAdminExample.lua` on the server. They use the existing
+runtime JSON library and SRC event APIs. Enable both through the usual plugin
+configuration and press Delete during play; it opens the native tab-menu panel
+and cursor directly. Press Delete again to close it. Closing or disabling the
+plugin restores the previous local tab and cursor state. Delete is SDL scancode
+76. The toggle ignores foreign tab menus, pause menus and non-game screens;
+this panel contains no text inputs. Lua has no native text-focus query, so an
+unrelated plugin drawing a text field on the same custom tab remains a conflict.
+Core key binds do not consume game input. Refresh the player list, choose a player and action,
+confirm, then apply. Every successful action consumes its server snapshot, so
+refresh before applying another action.
+
+The server requires the existing `Player.isAdmin` permission on every request.
+Actions include go-to, bring, kick, a 1–1440 minute account ban, and explicit god
+mode on/off. Teleports require both players' active, living humans outside vehicles and move
+beside the destination; the example does not search for safe ground. Kick uses the existing
+`srcutils` connection-timeout convention. Ban updates and saves the account
+before disconnecting. There is no mute action or permission-granting control.
