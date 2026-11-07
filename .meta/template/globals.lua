@@ -366,14 +366,19 @@ function particle.new(name) end
 ---Decals are cleared on game reset, Lua runtime rebuild and sync reset, and when their owner is
 ---removed. Each owner keeps at most decals.MAX_PER_OWNER decals, the world keeps at most
 ---decals.MAX_WORLD, and the total is capped at decals.MAX_TOTAL; the oldest is evicted first.
+---World decals on one surface bake into a shared canvas. At most decals.MAX_CANVASES canvases (and a
+---fixed texture budget) exist; past that the least recently painted canvas is evicted with all its decals,
+---and their handles become invalid.
 decals = {}
 
 ---@type integer 🔒 Maximum number of world decals.
-decals.MAX_WORLD = 1024
+decals.MAX_WORLD = 16384
 ---@type integer 🔒 Maximum number of decals attached to one human, vehicle or item.
 decals.MAX_PER_OWNER = 32
 ---@type integer 🔒 Maximum number of decals in total.
-decals.MAX_TOTAL = 2048
+decals.MAX_TOTAL = 17408
+---@type integer 🔒 Maximum number of world decal canvases.
+decals.MAX_CANVASES = 256
 
 ---Create a decal.
 ---@param options DecalOptions
