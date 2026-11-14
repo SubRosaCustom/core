@@ -4,14 +4,6 @@
 ---@field name string
 ---@field event_name string
 
----@class HookRunInfo
----@field time number
----@field name string
-
----@class HookInfo
----@field time number
----@field runs HookRunInfo[]
-
 ---@class HookGlobal
 ---@field continue HookContinue
 ---@field override HookOverride
@@ -45,64 +37,23 @@
 ---@field autoCompletePlugin fun(beginning: string, nameSpace?: string): string|nil, Plugin|nil
 ---@field getPluginByName fun(name: string, nameSpace?: string): Plugin|nil
 ---@field _function_data table<function, FunctionData>
----@field _last_run_info table<string, HookInfo>
+---@field _generation integer
 ---@type HookGlobal
 hook = hook or {}
 
 local _hooks = {}
 local _temp_hooks = {}
 local _cache = {}
-local _known_engine_events = {
-	Logic = true,
-	DrawHuman = true,
-	RenderFrame = true,
-	PostRenderFrame = true,
-	DrawUI = true,
-	WriteClientData = true,
-	DrawMapMenu = true,
-	DrawMenuItems = true,
-	PostDrawMenuItems = true,
-	Draw3D = true,
-	DrawModels = true,
-	ExitGameCall = true,
-	PlayerControlHandler = true,
-	PostPlayerControlHandler = true,
-	DrawMapMarkers = true,
-	DrawHumanLabels = true,
-}
-local _enabled_engine_events = {}
 local _next_order = 0
 
 -- Metadata must not keep removed hooks or callbacks from old plugin definitions alive.
 hook._function_data = setmetatable({}, { __mode = "k", })
-hook._last_run_info = {}
+hook._generation = 0
 
 hook.continue = 1
 hook.override = 2
 hook.plugins = hook.plugins or {}
 hook.persistentMode = hook.persistentMode or (__src_persistent_mode or "")
-
-function hook.enable(event_name)
-	if _known_engine_events[event_name] then
-		_enabled_engine_events[event_name] = true
-		return true
-	end
-
-	return false
-end
-
-function hook.disable(event_name)
-	if _known_engine_events[event_name] then
-		_enabled_engine_events[event_name] = nil
-		return true
-	end
-
-	return false
-end
-
-function hook.clear()
-	_enabled_engine_events = {}
-end
 
 function hook._next_order()
 	_next_order = _next_order + 1
@@ -110,6 +61,7 @@ function hook._next_order()
 end
 
 function hook.resetCache()
+	hook._generation = hook._generation + 1
 	hook.clear()
 	_cache = {}
 
@@ -209,27 +161,12 @@ function hook.remove(event_name, name)
 end
 
 function hook.run(event_name, ...)
-	if _known_engine_events[event_name] and not _enabled_engine_events[event_name] then
-		return false
-	end
-
 	local had_temp = false
-	local hook_info = {
-		runs = {},
-	}
-	local hook_total_start = os.clock()
 
 	if _temp_hooks[event_name] ~= nil then
 		local temp_override = false
 		for _, temp_hook in ipairs(_temp_hooks[event_name]) do
-			local hook_start = os.clock()
 			local result = temp_hook(...)
-			local func_info = hook._function_data[temp_hook]
-
-			table.insert(hook_info.runs, {
-				time = os.clock() - hook_start,
-				name = func_info and func_info.name or "unknown",
-			})
 
 			if result == hook.override or result == true then
 				temp_override = true
@@ -246,14 +183,7 @@ function hook.run(event_name, ...)
 	local cache = _cache[event_name]
 	if cache ~= nil then
 		for _, hook_func in ipairs(cache) do
-			local hook_start = os.clock()
 			local result = hook_func(...)
-			local func_info = hook._function_data[hook_func]
-
-			table.insert(hook_info.runs, {
-				time = os.clock() - hook_start,
-				name = func_info and func_info.name or "unknown",
-			})
 
 			if result == hook.continue then
 				return false
@@ -262,10 +192,6 @@ function hook.run(event_name, ...)
 				return true
 			end
 		end
-		hook._last_run_info[event_name] = {
-			time = os.clock() - hook_total_start,
-			runs = hook_info.runs,
-		}
 	elseif had_temp then
 		hook.disable(event_name)
 	end

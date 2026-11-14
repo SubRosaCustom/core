@@ -2,7 +2,6 @@
 ---@class main.DataTyper
 data = {}
 
--- Formatted with class, type as strings
 local data_format = "_typed_%s_%s"
 
 ---@generic T

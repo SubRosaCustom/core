@@ -146,6 +146,19 @@ function plugin:disable(should_save)
 	return success
 end
 
+function plugin:_withScope(phase, fn, ...)
+	local previous_plugin = loading_plugin
+	local previous_phase = server_event_registration_phase
+	loading_plugin = self
+	server_event_registration_phase = phase
+	local function restore(...)
+		loading_plugin = previous_plugin
+		server_event_registration_phase = previous_phase
+		return ...
+	end
+	return restore(pcall(fn, ...))
+end
+
 function plugin:print(...)
 	local prefix = "\27[38;5;33m[" .. self.name .. "]\27[0m "
 	print(prefix .. concatVarArgs("\t", ...))
@@ -160,13 +173,7 @@ function plugin:require(module_name)
 	if not self.requireCache[module_name] then
 		local file_name = self.nameSpace .. "/" .. self.fileName .. "/" .. module_name .. ".lua"
 		local loaded_file = assert(loadfile(file_name))
-		local previous_loading_plugin = loading_plugin
-		local previous_registration_phase = server_event_registration_phase
-		loading_plugin = self
-		server_event_registration_phase = "entry"
-		local results = { pcall(loaded_file, self) }
-		loading_plugin = previous_loading_plugin
-		server_event_registration_phase = previous_registration_phase
+		local results = { self:_withScope("entry", loaded_file, self) }
 
 		if not results[1] then
 			error(results[2], 0)
@@ -244,13 +251,7 @@ end
 
 function plugin:_activate(is_reload)
 	self._active_server_event_handlers = {}
-	local previous_loading_plugin = loading_plugin
-	local previous_registration_phase = server_event_registration_phase
-	loading_plugin = self
-	server_event_registration_phase = "activation"
-	local success, err = pcall(self.callEnableHandlers, self, is_reload)
-	loading_plugin = previous_loading_plugin
-	server_event_registration_phase = previous_registration_phase
+	local success, err = self:_withScope("activation", self.callEnableHandlers, self, is_reload)
 	if not success then
 		self:warn("Enable handler failed: " .. tostring(err))
 		self:callDisableHandlers(is_reload)
@@ -304,16 +305,10 @@ function plugin:load(is_enabled, is_reload)
 		return false
 	end
 
-	local previous_loading_plugin = loading_plugin
-	local previous_registration_phase = server_event_registration_phase
-	loading_plugin = self
-	server_event_registration_phase = "entry"
-	local success, err = pcall(function()
+	local success, err = self:_withScope("entry", function()
 		loaded_file(self)
 		self:setConfig()
 	end)
-	loading_plugin = previous_loading_plugin
-	server_event_registration_phase = previous_registration_phase
 	if not success then
 		print_scoped(string.format("\27[38;5;196mFailed to load plugin '%s': %s", self.entryPath, err or "unknown"))
 		self:callDisableHandlers(is_reload)

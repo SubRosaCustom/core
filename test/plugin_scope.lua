@@ -1,3 +1,5 @@
+unpack = unpack or table.unpack
+bit32 = bit32 or { bxor = function(a, b) return (a ~ b) & 0xFFFFFFFF end, band = function(a, b) return (a & b) & 0xFFFFFFFF end }
 -- Run from core/: lua test/plugin_scope.lua
 local native_loadfile = loadfile
 local compile = loadstring or load
@@ -21,7 +23,12 @@ local function reset(next_files, next_paths, persistent_mode)
 	script_paths = next_paths
 	evaluated, enabled, disabled, events = {}, {}, {}, {}
 	config = { plugins = {}, defaultGameMode = "active" }
-	hook = nil
+	-- stands in for the native hook table
+	hook = {
+		enable = function() return true end,
+		disable = function() return true end,
+		clear = function() end,
+	}
 	__src_persistent_mode = persistent_mode or ""
 	dofile("main/hook.lua")
 	__src_read_file = function(path) return files[path] end
@@ -38,6 +45,19 @@ local function reset(next_files, next_paths, persistent_mode)
 	_G.recordDisable = function(name) disabled[#disabled + 1] = name end
 	_G.recordEvent = function(name) events[#events + 1] = name end
 	runtime = assert(native_loadfile("main/plugins.lua"))()
+	-- real init.lua (onServerEvent, dispatch) bound to this runtime; only unrelated libs are stubbed
+	package.loaded["main.plugins"] = runtime
+	for _, name in ipairs({ "util", "input", "blips", "enum", "dataTyper", "gameUtil", "hook" }) do
+		package.loaded["main." .. name] = true
+	end
+	package.loaded["main.yaml"] = { parse = function() return {} end }
+	package.loaded["main.eventCodec"] = nil
+	-- init's own loadConfig would fire ConfigLoaded and load plugins before the fixture runs
+	local run = hook.run
+	hook.run = function() end
+	dofile("main/init.lua")
+	hook.run = run
+	config = { plugins = {}, defaultGameMode = "active" }
 	return runtime
 end
 
@@ -48,9 +68,9 @@ recordEntry(%q)
 plugin.onEnable = function() recordEnable(%q) end
 plugin.onDisable = function() recordDisable(%q) end
 plugin:addHook("Logic", function() recordEvent(%q) end)
-plugin._server_event_handlers[123] = { function() end }
+onServerEvent("scope." .. %q, function() recordEvent("event:" .. %q) end)
 %s
-]], name, name, name, name, extra or "")
+]], name, name, name, name, name, name, extra or "")
 end
 
 local function contains(values, value)
@@ -98,6 +118,9 @@ assert(hook.plugins["plugins:duplicate"].entryPath == "plugins/duplicate/init.lu
 assert(not hook.plugins["plugins:bad.name"] and not hook.plugins["plugins:helper"])
 assert(not hook.plugins["plugins:disabled"].isEnabled)
 assert(not hook.plugins["modes:inactive"]._is_loaded)
+events = {}
+local dispatched = __src_dispatch_server_event(require("main.eventCodec").hash_name("scope.alpha"), require("main.eventCodec").encode())
+assert(dispatched.status == "processed" and dispatched.handled == 1 and contains(events, "event:alpha"), "plugin-owned handler runs through real dispatch")
 local reversed = {}
 for i = #paths, 1, -1 do reversed[#reversed + 1] = paths[i] end
 reset(initial_files, reversed).loadPlugins()
@@ -196,21 +219,19 @@ reset({ ["modes/pool/init.lua"] = pool_source }, { "modes/pool/init.lua" })
 config.defaultGameMode = "pool"
 __srccPoolClientRuntime = nil
 local noop = function() end
-local constants = { defaultConfig = {}, EVENTS = { state = 1, notice = 2 } }
+local constants = { defaultConfig = {}, EVENTS = { state = "srcc.pool.state", notice = "srcc.pool.notice" } }
 local state = setmetatable({ newContext = function() return {} end }, { __index = function() return noop end })
 local module_stub = setmetatable({}, { __index = function() return noop end })
 local modules = { constants = constants, state = state, input = module_stub, render = module_stub }
 runtime.plugin.require = function(_, name) return modules[name] end
-onServerEvent = function(name, handler)
-	local owner = runtime._get_server_event_registration()
-	owner._server_event_handlers[name] = owner._server_event_handlers[name] or {}
-	table.insert(owner._server_event_handlers[name], handler)
-end
 runtime.loadPlugins()
 local pool = hook.plugins["modes:pool"]
-assert(pool.isEnabled and #pool._server_event_handlers[1] == 1 and #pool._server_event_handlers[2] == 1)
+local event_codec = require("main.eventCodec")
+local state_key, notice_key = event_codec.hash_name(constants.EVENTS.state), event_codec.hash_name(constants.EVENTS.notice)
+assert(#state_key == 8 and #notice_key == 8)
+assert(pool.isEnabled and #pool._server_event_handlers[state_key] == 1 and #pool._server_event_handlers[notice_key] == 1)
 assert(runtime.applyPatch({ "modes/pool/init.lua" }))
-assert(pool.isEnabled and #pool._server_event_handlers[1] == 1 and #pool._server_event_handlers[2] == 1)
+assert(pool.isEnabled and #pool._server_event_handlers[state_key] == 1 and #pool._server_event_handlers[notice_key] == 1)
 
 -- Hook diagnostics must survive collection for active callbacks without owning old definitions.
 reset({ ["modes/active/init.lua"] = source("active") }, { "modes/active/init.lua" }, "active").loadPlugins()

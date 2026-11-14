@@ -1,4 +1,4 @@
--- Version: 0.9.9
+-- Version: 1.0.0
 ---@diagnostic disable: lowercase-global
 
 require("main.util")
@@ -12,7 +12,6 @@ require("main.gameUtil")
 local event_codec = require("main.eventCodec")
 
 local yaml = require("main.yaml")
-local unpack_fn = table.unpack or unpack
 
 local has_config_loaded_once = false
 
@@ -52,12 +51,39 @@ end
 
 local server_event_handlers = {}
 local server_event_names_by_hash = {}
+local hash_by_name = {}
+local hash_by_name_count = 0
+local MAX_MEMOIZED_NAMES = 1024
+local handler_cache = {}
+local handler_cache_count = 0
+local handler_cache_generation = -1
+local MAX_CACHED_HASHES = 256
+
+-- memo resets at a cap, names aren't trusted to stay few
+local function hash_name(name)
+	local hash = hash_by_name[name]
+	if hash == nil then
+		hash = event_codec.hash_name(name)
+		if hash_by_name_count >= MAX_MEMOIZED_NAMES then
+			hash_by_name = {}
+			hash_by_name_count = 0
+		end
+		hash_by_name[name] = hash
+		hash_by_name_count = hash_by_name_count + 1
+	end
+	return hash
+end
+
+local function invalidate_handler_cache()
+	handler_cache = {}
+	handler_cache_count = 0
+end
 
 function onServerEvent(name, fn)
 	assert(type(name) == "string" and name ~= "", "onServerEvent(name, fn): name must be non-empty string")
 	assert(type(fn) == "function", "onServerEvent(name, fn): fn must be function")
 
-	local hash = event_codec.hashName(name)
+	local hash = hash_name(name)
 	local existing_name = server_event_names_by_hash[hash]
 	if existing_name and existing_name ~= name then
 		error(string.format("onServerEvent hash collision: '%s' conflicts with '%s'", name, existing_name))
@@ -78,18 +104,19 @@ function onServerEvent(name, fn)
 	end
 
 	table.insert(handlers[hash], fn)
+	invalidate_handler_cache()
 end
 
 local function emit_server_event(emit, name, ...)
 	assert(type(name) == "string" and name ~= "", "emitServerEvent(name, ...): name must be non-empty string")
-	local hash = event_codec.hashName(name)
+	local hash = hash_name(name)
 	local existing_name = server_event_names_by_hash[hash]
 	if existing_name and existing_name ~= name then
 		error(string.format("emitServerEvent hash collision: '%s' conflicts with '%s'", name, existing_name))
 	end
 	server_event_names_by_hash[hash] = name
 
-	local args_bytes, encode_error = event_codec.encodeArgs(...)
+	local args_bytes, encode_error = event_codec.encode(...)
 	assert(args_bytes ~= nil, "emitServerEvent(name, ...): " .. tostring(encode_error))
 
 	return emit(name, hash, args_bytes)
@@ -102,7 +129,7 @@ function emitServerEventLatest(name, ...)
 	return emit_server_event(__src_emit_server_event_latest, name, ...)
 end
 
-function __src_dispatch_server_event(hash, args_bytes)
+local function collect_server_event_handlers(hash)
 	local handlers = {}
 	for _, fn in ipairs(server_event_handlers[hash] or {}) do
 		table.insert(handlers, fn)
@@ -119,6 +146,26 @@ function __src_dispatch_server_event(hash, args_bytes)
 		end
 	end
 
+	return handlers
+end
+
+-- plugin changes end in hook.resetCache, which bumps the generation; onServerEvent invalidates directly
+function __src_dispatch_server_event(hash, args_bytes)
+	if handler_cache_generation ~= hook._generation then
+		invalidate_handler_cache()
+		handler_cache_generation = hook._generation
+	end
+
+	local handlers = handler_cache[hash]
+	if handlers == nil then
+		handlers = collect_server_event_handlers(hash)
+		if handler_cache_count >= MAX_CACHED_HASHES then
+			invalidate_handler_cache()
+		end
+		handler_cache[hash] = handlers
+		handler_cache_count = handler_cache_count + 1
+	end
+
 	if #handlers == 0 then
 		return {
 			status = "no_handler",
@@ -128,7 +175,7 @@ function __src_dispatch_server_event(hash, args_bytes)
 		}
 	end
 
-	local args = event_codec.decodeArgs(args_bytes)
+	local args = event_codec.decode_args(args_bytes)
 	if not args then
 		return {
 			status = "decode_error",
@@ -143,7 +190,8 @@ function __src_dispatch_server_event(hash, args_bytes)
 	local first_error = nil
 
 	for _, fn in ipairs(handlers) do
-		local ok, err = pcall(fn, unpack_fn(args, 1, args.n))
+		-- decode_args caps args at 255, within unpack's limit
+		local ok, err = pcall(fn, unpack(args, 1, args.n))
 		if not ok then
 			errors = errors + 1
 			if not first_error then

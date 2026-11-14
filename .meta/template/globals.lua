@@ -513,11 +513,12 @@ function onServerEvent(name, fn) end
 
 ---Emit a client-to-server SRC event.
 ---Ordinary reliable events exist in the published baseline; delivery is unordered.
----LOCAL-ONLY transport policy below describes protocol 10, not published protocol 9.
+---LOCAL-ONLY transport policy below describes protocol 11, not published protocol 9.
 ---Each native send flushes queued fragments and receipts in up to eight size-bounded datagrams
 ---per peer (at most 9,600 bytes); congestion limits may stop the flush sooner.
 ---No extra transport pacing timer is imposed; congestion windows and retry deadlines still apply.
 ---The complete encoded argument block is limited to 256 KiB, including serialization overhead.
+---At most 255 arguments are accepted; larger counts are rejected on encode and decode.
 ---The server may advertise a lower limit; oversized events and full queues return false.
 ---Queue acceptance does not guarantee remote processing.
 ---Disconnects discard pending events; they are not replayed into a new session.
@@ -529,7 +530,7 @@ function onServerEvent(name, fn) end
 function emitServerEvent(name, ...) end
 
 ---LOCAL-ONLY API: absent from the published protocol-9 baseline.
----Send replaceable latest state over UDP (protocol 10); requires matching client/integration.
+---Send replaceable latest state over UDP (protocol 11); requires matching client/integration.
 ---A newer unsent value replaces the older value for the same event name.
 ---No delivery receipts, processing results or retries. Loss may drop the final update.
 ---Receivers discard older sequence IDs; delivery across different names is unordered.
@@ -560,7 +561,7 @@ __src_persistent_mode = ""
 ---@return boolean success
 function __src_emit_server_event(eventName, eventHash, argsBytes) end
 
----LOCAL-ONLY internal protocol-10 emitter; absent from the published baseline.
+---LOCAL-ONLY internal protocol-11 emitter; absent from the published baseline.
 ---Use emitServerEventLatest.
 ---@param eventName string
 ---@param eventHash string

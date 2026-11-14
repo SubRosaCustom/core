@@ -1,7 +1,8 @@
-local M = {}
+local event_codec = {}
 
 local MAGIC = "SRCA"
 local VERSION = 1
+local MAX_ARGUMENTS = 255
 
 local TYPE_NIL = 0
 local TYPE_FALSE = 1
@@ -15,12 +16,8 @@ local FNV64_OFFSET_HI = 0xCBF29CE4
 local FNV64_OFFSET_LO = 0x84222325
 local FNV64_SHIFTS = { 0, 1, 4, 5, 7, 8, 40 }
 
-local unpack_fn = table.unpack or unpack
-local bit_lib = bit32 or bit
-assert(bit_lib, "main.eventCodec requires bit32 or bit")
-
-local bxor = bit_lib.bxor
-local band = bit_lib.band
+local bxor = bit32.bxor
+local band = bit32.band
 
 local binary_metatable = {}
 binary_metatable.__index = binary_metatable
@@ -217,12 +214,12 @@ local function shl64(hi, lo, shift)
 end
 
 local function multiply_fnv_prime(hi, lo)
-	local out_hi, out_lo = 0, 0
+	local output_high, output_low = 0, 0
 	for i = 1, #FNV64_SHIFTS do
-		local shifted_hi, shifted_lo = shl64(hi, lo, FNV64_SHIFTS[i])
-		out_hi, out_lo = add64(out_hi, out_lo, shifted_hi, shifted_lo)
+		local shifted_high, shifted_low = shl64(hi, lo, FNV64_SHIFTS[i])
+		output_high, output_low = add64(output_high, output_low, shifted_high, shifted_low)
 	end
-	return out_hi, out_lo
+	return output_high, output_low
 end
 
 local function pack_u32(value)
@@ -238,17 +235,16 @@ local function is_blob(value)
 	return type(value) == "table" and getmetatable(value) == binary_metatable
 end
 
-function M.blob(bytes)
+function event_codec.blob(bytes)
 	assert(type(bytes) == "string", "blob(bytes): bytes must be string")
 	return setmetatable({ data = bytes }, binary_metatable)
 end
 
-function M.isBlob(value)
-	return is_blob(value)
-end
-
-function M.encode(...)
+function event_codec.encode(...)
 	local count = select("#", ...)
+	if count > MAX_ARGUMENTS then
+		return nil, "too many arguments"
+	end
 	local parts = { MAGIC, string.char(VERSION), pack_u32(count) }
 
 	for i = 1, count do
@@ -281,11 +277,7 @@ function M.encode(...)
 	return table.concat(parts)
 end
 
-function M.encodeArgs(...)
-	return M.encode(...)
-end
-
-function M.decode(blob)
+function event_codec.decode(blob)
 	if type(blob) ~= "string" or #blob < 9 then
 		return nil, "blob too short"
 	end
@@ -296,6 +288,9 @@ function M.decode(blob)
 	end
 	if version ~= VERSION then
 		return nil, "unsupported version"
+	end
+	if count > MAX_ARGUMENTS then
+		return nil, "too many arguments"
 	end
 
 	local values = {}
@@ -338,7 +333,7 @@ function M.decode(blob)
 			end
 			local bytes = blob:sub(pos, pos + len - 1)
 			if value_type == TYPE_BINARY then
-				values[index] = M.blob(bytes)
+				values[index] = event_codec.blob(bytes)
 			else
 				values[index] = bytes
 			end
@@ -355,8 +350,8 @@ function M.decode(blob)
 	return values, count
 end
 
-function M.decodeArgs(blob)
-	local values, count_or_error = M.decode(blob)
+function event_codec.decode_args(blob)
+	local values, count_or_error = event_codec.decode(blob)
 	if not values then
 		return nil, count_or_error
 	end
@@ -365,16 +360,7 @@ function M.decodeArgs(blob)
 	return values
 end
 
-function M.unpack(blob)
-	local values, count_or_error = M.decode(blob)
-	if not values then
-		return nil, count_or_error
-	end
-
-	return unpack_fn(values, 1, count_or_error)
-end
-
-function M.hashName(name)
+function event_codec.hash_name(name)
 	if type(name) ~= "string" then
 		return nil
 	end
@@ -389,7 +375,7 @@ function M.hashName(name)
 	return pack_u32(hi) .. pack_u32(lo)
 end
 
-function M.hex(hash_bytes)
+function event_codec.hex(hash_bytes)
 	if type(hash_bytes) ~= "string" then
 		return tostring(hash_bytes)
 	end
@@ -399,4 +385,4 @@ function M.hex(hash_bytes)
 	end))
 end
 
-return M
+return event_codec
