@@ -308,6 +308,24 @@ function vehicleTypes.getAll() end
 ---@return VehicleType? vehicleType The found vehicle type, or nil.
 function vehicleTypes.getByName(name) end
 
+---The level's buildings (read-only).
+---buildings[index: integer] -> Building
+---#buildings -> count
+buildings = {}
+
+---Get the number of buildings.
+---@return integer count
+function buildings.getCount() end
+
+---The client's replicated corporation records (read-only).
+---corporations[index: integer] -> Corporation, index 0..5
+---#corporations -> 6
+corporations = {}
+
+---Get the number of corporation records (always 6).
+---@return integer count
+function corporations.getCount() end
+
 ---Library for managing TrafficCar objects.
 ---trafficCars[index: integer] -> TrafficCar
 ---#trafficCars -> count of traffic cars
